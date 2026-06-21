@@ -18,6 +18,9 @@ node_modules/
 dist/
 dist-ssr/
 .vite/
+*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
 *.log
 npm-debug.log*
 pnpm-debug.log*

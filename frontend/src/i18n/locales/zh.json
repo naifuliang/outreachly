@@ -1,0 +1,27 @@
+{
+  "app": {
+    "name": "Outreachly",
+    "tagline": "从一个想法到收到回复 —— 冷启动触达,全自动。"
+  },
+  "nav": {
+    "language": "语言"
+  },
+  "home": {
+    "intro": "生成客户画像,在邮件、LinkedIn、Twitter 多渠道发现线索,并完成个性化触达 —— 一站式搞定。",
+    "backendStatus": "后端状态",
+    "checking": "检测中…",
+    "online": "在线(v{{version}})",
+    "offline": "离线 —— 请启动 API:uvicorn app.main:app --reload",
+    "providers": "渠道连通性",
+    "roadmap": "路线图"
+  },
+  "phases": {
+    "p0": "脚手架与基建",
+    "p1": "画像引擎与编辑器",
+    "p2": "CRM 与线索表",
+    "p3": "Maps 采集与邮箱增强",
+    "p4": "序列、发送与回复",
+    "p5": "LinkedIn 与 Twitter 渠道",
+    "p6": "数据看板与打磨"
+  }
+}

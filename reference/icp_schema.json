@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://outreachly.dev/schemas/icp.json",
+  "title": "Ideal Customer Profile",
+  "description": "Structured target definition that drives lead discovery across all channels.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["industries", "titles", "keywords"],
+  "properties": {
+    "product": {
+      "type": "string",
+      "description": "The product/offer this ICP is for (free-text)."
+    },
+    "industries": {
+      "type": "array",
+      "description": "Target industries / verticals.",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "company_size": {
+      "type": "string",
+      "description": "Target company size band.",
+      "enum": ["solo", "1-10", "11-50", "51-200", "201-1000", "1000+", "any"]
+    },
+    "geographies": {
+      "type": "array",
+      "description": "Target locations (city / region / country).",
+      "items": { "type": "string" }
+    },
+    "titles": {
+      "type": "array",
+      "description": "Decision-maker job titles to target.",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "pain_points": {
+      "type": "array",
+      "description": "Pains the product addresses (used for personalization).",
+      "items": { "type": "string" }
+    },
+    "buying_signals": {
+      "type": "array",
+      "description": "Observable triggers indicating readiness (hiring, funding, tech adopted, ...).",
+      "items": { "type": "string" }
+    },
+    "keywords": {
+      "type": "array",
+      "description": "Search keywords used by discovery (Places text / X search / LinkedIn).",
+      "items": { "type": "string" },
+      "minItems": 1
+    },
+    "channels": {
+      "type": "array",
+      "description": "Channels to pursue for this ICP.",
+      "items": { "type": "string", "enum": ["email", "linkedin", "twitter"] }
+    },
+    "language": {
+      "type": "string",
+      "description": "Preferred outreach language.",
+      "enum": ["en", "zh"],
+      "default": "en"
+    }
+  }
+}

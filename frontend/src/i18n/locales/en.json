@@ -1,0 +1,27 @@
+{
+  "app": {
+    "name": "Outreachly",
+    "tagline": "From an idea to replies — cold outreach on autopilot."
+  },
+  "nav": {
+    "language": "Language"
+  },
+  "home": {
+    "intro": "Generate a customer profile, discover leads across Email, LinkedIn and Twitter, and run personalized outreach — all in one place.",
+    "backendStatus": "Backend status",
+    "checking": "Checking…",
+    "online": "Online (v{{version}})",
+    "offline": "Offline — start the API with: uvicorn app.main:app --reload",
+    "providers": "Provider connectivity",
+    "roadmap": "Roadmap"
+  },
+  "phases": {
+    "p0": "Scaffold & foundations",
+    "p1": "ICP engine & profile editor",
+    "p2": "CRM & lead table",
+    "p3": "Maps discovery & email enrichment",
+    "p4": "Sequences, send & reply",
+    "p5": "LinkedIn & Twitter channels",
+    "p6": "Analytics & polish"
+  }
+}
