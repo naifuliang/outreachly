@@ -209,14 +209,15 @@
         try {
           const msgs = (await (await fetch(`/api/lead/${id}/messages`)).json()).messages || [];
           if (!msgs.length) { box.innerHTML = `<span class="empty">${t.noMessages}</span>`; return; }
+          const esc = (s) => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;");
           box.innerHTML = `<div style="font-size:13px">` + msgs.map((m) => {
             const dir = m.direction === "outbound" ? "→" : "←";
             const meta = [m.channel, m.status, m.intent].filter(Boolean).join(" · ");
             return `<div style="padding:6px 0;border-bottom:1px solid var(--line)">` +
               `<span style="color:var(--accent)">${dir}</span> ` +
-              `<b>#${id}</b> <span class="empty">${meta}</span>` +
-              `${m.subject ? `<div><b>${m.subject}</b></div>` : ""}` +
-              `<div>${(m.body || "").replace(/</g, "&lt;")}</div></div>`;
+              `<b>#${id}</b> <span class="empty">${esc(meta)}</span>` +
+              `${m.subject ? `<div><b>${esc(m.subject)}</b></div>` : ""}` +
+              `<div>${esc(m.body)}</div></div>`;
           }).join("") + `</div>`;
         } catch (e) { box.innerHTML = `<span class="empty">${t.noMessages}</span>`; }
       }
