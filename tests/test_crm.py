@@ -58,3 +58,16 @@ def test_website_only_leads_dedup_by_domain(tmp_path):
     _, created = crm.upsert_lead({"source": "maps", "name": "Acme Inc", "website": "http://acme.com/about"}, db)
     assert created is False
     assert len(crm.list_leads(path=db)) == 1
+
+
+def test_website_only_lead_does_not_merge_onto_social_lead(tmp_path):
+    db = str(tmp_path / "t.sqlite")
+    crm.init_db(db)
+    # A social lead (has external_id) stored a real domain; a later website-only lead at the
+    # same domain is a different entity and must NOT merge onto it.
+    crm.upsert_lead({"source": "twitter", "external_id": "u1", "name": "CEO Person",
+                     "website": "https://acme.com"}, db)
+    _, created = crm.upsert_lead({"source": "maps", "name": "Acme Storefront",
+                                  "website": "https://acme.com"}, db)
+    assert created is True
+    assert len(crm.list_leads(path=db)) == 2

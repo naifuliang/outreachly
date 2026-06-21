@@ -128,10 +128,13 @@ def upsert_lead(lead: dict, path: str | None = None) -> tuple[int, bool]:
             ).fetchone()
         if not existing and lead.get("email"):
             existing = conn.execute("SELECT id FROM leads WHERE email=?", (lead["email"],)).fetchone()
-        # Domain dedup only for leads lacking a strong identity (no external_id, no email).
+        # Domain dedup only for leads lacking a strong identity (no external_id, no email),
+        # and only against OTHER such website-only rows — never onto a social/identified lead
+        # that merely stored the same domain.
         if not existing and lead.get("domain") and not lead.get("external_id") and not lead.get("email"):
             existing = conn.execute(
-                "SELECT id FROM leads WHERE domain=?", (lead["domain"],)
+                "SELECT id FROM leads WHERE domain=? AND external_id IS NULL AND email IS NULL",
+                (lead["domain"],),
             ).fetchone()
 
         cols = [
