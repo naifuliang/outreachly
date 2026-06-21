@@ -61,6 +61,8 @@ def send_email(lead_id: int, subject: str, body: str, *, auto: bool = False,
     lead = crm.get_lead(lead_id, path)
     if not lead:
         return {"ok": False, "detail": f"lead #{lead_id} not found"}
+    if lead.get("status") in crm.STOPPED_STATUSES:
+        return {"ok": False, "detail": f"sequence stopped (status={lead['status']})"}
     if not lead.get("email"):
         return {"ok": False, "detail": "lead has no email"}
     if str(lead.get("email_status") or "").strip().lower() == "invalid":

@@ -98,6 +98,8 @@ def dm(lead_id: int, message: str, *, auto: bool = False, path: str | None = Non
     lead = crm.get_lead(lead_id, path)
     if not lead:
         return {"ok": False, "detail": f"lead #{lead_id} not found"}
+    if lead.get("status") in crm.STOPPED_STATUSES:
+        return {"ok": False, "detail": f"sequence stopped (status={lead['status']})"}
     if lead.get("source") != "twitter" or not lead.get("external_id"):
         return {"ok": False, "detail": "lead is not an X profile with an id"}
 

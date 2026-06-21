@@ -50,8 +50,11 @@ Run any script with `--help`. Check connectivity per provider with `python scrip
 
 6. **Send** *(scripts)* — `send_email.py`, `linkedin.py dm`, `twitter.py dm`. Drafts never send.
 
-7. **Track replies** *(scripts fetch, you classify)* — pull replies, then classify intent
-   (interested / not interested / later), stop sequences for repliers, and update the CRM.
+7. **Track replies** *(scripts fetch, you classify)* — `python scripts/reply_handler.py sync`
+   pulls inbound (LinkedIn + email via Unipile, X DMs), matches them to leads, logs them, and
+   advances repliers to `replied` (which stops their sequence). Then read the new inbound
+   messages, classify intent (interested / not_interested / later), and persist it with
+   `python scripts/reply_handler.py set-intent --lead N --intent <intent>`.
 
 ## Channels & providers
 
@@ -67,6 +70,6 @@ without it.
 ## Files
 
 - `scripts/` — `icp.py`, `crm.py`, `find_email.py`, `verify_email.py`,
-  `send_email.py`, `linkedin.py`, `twitter.py`, `serve_ui.py`, `_common.py`
+  `send_email.py`, `linkedin.py`, `twitter.py`, `reply_handler.py`, `serve_ui.py`, `_common.py`
 - `reference/` — `icp_schema.json`, `channels.md`
 - `web/index.html` — optional UI · `data/` — local SQLite CRM

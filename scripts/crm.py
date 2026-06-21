@@ -266,11 +266,42 @@ def set_status(lead_id: int, new_status: str, path: str | None = None) -> str:
         conn.close()
 
 
+#: Statuses for which an outreach sequence is stopped (no further sends).
+STOPPED_STATUSES = {"replied", "converted", "rejected"}
+
+
 def mark_contacted(lead_id: int, path: str | None = None) -> None:
     """Advance a brand-new lead to 'contacted' after a real outbound touch. No-op otherwise."""
     lead = get_lead(lead_id, path)
     if lead and lead["status"] == "new":
         set_status(lead_id, "contacted", path)
+
+
+def mark_replied(lead_id: int, path: str | None = None) -> None:
+    """Advance a contacted lead to 'replied' (stops the sequence). No-op otherwise."""
+    lead = get_lead(lead_id, path)
+    if lead and lead["status"] == "contacted":
+        set_status(lead_id, "replied", path)
+
+
+def find_lead_by(*, source: str | None = None, external_id: str | None = None,
+                 email: str | None = None, path: str | None = None) -> dict | None:
+    """Look up a lead by (source, external_id) or by email. Returns the row dict or None."""
+    conn = connect(path)
+    try:
+        if external_id and source:
+            row = conn.execute(
+                "SELECT * FROM leads WHERE source=? AND external_id=?", (source, external_id)
+            ).fetchone()
+            if row:
+                return dict(row)
+        if email:
+            row = conn.execute("SELECT * FROM leads WHERE email=?", (email,)).fetchone()
+            if row:
+                return dict(row)
+        return None
+    finally:
+        conn.close()
 
 
 # --- Lead field updates, messages & events ---------------------------------------------------
@@ -339,6 +370,28 @@ def list_messages(lead_id: int | None = None, path: str | None = None) -> list[d
         else:
             rows = conn.execute("SELECT * FROM messages ORDER BY id").fetchall()
         return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def set_message_intent(message_id: int, intent: str, path: str | None = None) -> None:
+    """Store the classified intent on an inbound message (Claude classifies; this persists it)."""
+    conn = connect(path)
+    try:
+        conn.execute("UPDATE messages SET intent=? WHERE id=?", (intent, message_id))
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def latest_inbound(lead_id: int, path: str | None = None) -> dict | None:
+    conn = connect(path)
+    try:
+        row = conn.execute(
+            "SELECT * FROM messages WHERE lead_id=? AND direction='inbound' ORDER BY id DESC LIMIT 1",
+            (lead_id,),
+        ).fetchone()
+        return dict(row) if row else None
     finally:
         conn.close()
 
