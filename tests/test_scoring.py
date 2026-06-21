@@ -44,7 +44,7 @@ def test_no_geographies_does_not_penalize():
 def test_legal_transition(tmp_path):
     db = str(tmp_path / "t.sqlite")
     crm.init_db(db)
-    lid, _ = crm.upsert_lead({"source": "maps", "name": "Acme"}, db)
+    lid, _ = crm.upsert_lead({"source": "web", "name": "Acme"}, db)
     assert crm.set_status(lid, "contacted", db) == "contacted"
     assert crm.set_status(lid, "replied", db) == "replied"
     assert crm.set_status(lid, "converted", db) == "converted"
@@ -53,7 +53,7 @@ def test_legal_transition(tmp_path):
 def test_illegal_transition_rejected(tmp_path):
     db = str(tmp_path / "t.sqlite")
     crm.init_db(db)
-    lid, _ = crm.upsert_lead({"source": "maps", "name": "Acme"}, db)
+    lid, _ = crm.upsert_lead({"source": "web", "name": "Acme"}, db)
     # new → converted is illegal (no outreach yet)
     with pytest.raises(crm.IllegalTransition):
         crm.set_status(lid, "converted", db)
@@ -62,7 +62,7 @@ def test_illegal_transition_rejected(tmp_path):
 def test_terminal_state_has_no_exits(tmp_path):
     db = str(tmp_path / "t.sqlite")
     crm.init_db(db)
-    lid, _ = crm.upsert_lead({"source": "maps", "name": "Acme"}, db)
+    lid, _ = crm.upsert_lead({"source": "web", "name": "Acme"}, db)
     crm.set_status(lid, "rejected", db)
     with pytest.raises(crm.IllegalTransition):
         crm.set_status(lid, "contacted", db)
@@ -71,7 +71,7 @@ def test_terminal_state_has_no_exits(tmp_path):
 def test_rescore_all_updates_scores(tmp_path):
     db = str(tmp_path / "t.sqlite")
     crm.init_db(db)
-    crm.upsert_lead({"source": "maps", "name": "Bright Dental Clinic", "title": "practice owner",
+    crm.upsert_lead({"source": "web", "name": "Bright Dental Clinic", "title": "practice owner",
                      "location": "Austin"}, db)
     n = crm.rescore_all(ICP, db)
     assert n == 1

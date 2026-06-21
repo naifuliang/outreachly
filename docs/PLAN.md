@@ -18,7 +18,6 @@ its own PR after multi-agent acceptance against the criteria below. Process: see
 
 | Step | Channel | API | Script |
 |---|---|---|---|
-| Discover | Google Maps | Google Places API | `discover_maps.py` |
 | Discover + DM + inbox | LinkedIn | Unipile | `linkedin.py` |
 | Discover + DM | Twitter/X | X API v2 | `twitter.py` |
 | Email find | — | Hunter | `find_email.py` |
@@ -58,12 +57,15 @@ its own PR after multi-agent acceptance against the criteria below. Process: see
 - [ ] Scoring distinguishes a high-ICP-match lead from a clear mismatch (high vs low).
 - [ ] Status transitions reject illegal moves (e.g. new → converted without outreach).
 
-## P3 · Maps discovery + email enrichment (first real chain)
+## P3 · Email enrichment
+
+**Goal**: turn discovered leads that have a website/domain into verified email contacts.
 
 **Acceptance**
-- [ ] A localized ICP returns ≥ 20 real businesses with websites, upserted to the CRM.
-- [ ] Email finding + verification label each address; `invalid` never enters the send queue.
-- [ ] The full chain (ICP → maps → email → verify → CRM) runs end to end, visible in the UI.
+- [ ] For leads with a domain (e.g. from a LinkedIn company or an X bio link), email finding
+      returns candidate addresses; hit-rate is measurable.
+- [ ] Verification labels each address (valid/risky/invalid); `invalid` never enters the send queue.
+- [ ] The chain (lead domain → find → verify → CRM) runs end to end, visible in the UI.
 
 ## P4 · Sequences + send + reply (core loop)
 

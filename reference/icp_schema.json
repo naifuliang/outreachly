@@ -34,7 +34,7 @@
     },
     "keywords": {
       "type": "array", "items": { "type": "string" }, "minItems": 1,
-      "description": "Search keywords used by discovery (Places text / X search / LinkedIn)."
+      "description": "Search keywords used by discovery (X search / LinkedIn)."
     },
     "channels": {
       "type": "array",

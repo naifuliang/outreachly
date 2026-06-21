@@ -7,16 +7,6 @@ to keep the skill entry point lean. All keys live in `.env` (see `.env.example`)
 
 ---
 
-## Google Places API — discovery (`places`)
-
-- **Env**: `GOOGLE_PLACES_API_KEY` · **Base**: `https://maps.googleapis.com`
-- **Docs**: https://developers.google.com/maps/documentation/places/web-service
-- **Use**:
-  - Text Search — `GET /maps/api/place/textsearch/json?query=<keywords + geo>&key=`
-  - Place Details — `GET /maps/api/place/details/json?place_id=&fields=name,website,formatted_phone_number,formatted_address&key=`
-- **Yields**: name, website (→ domain → email finding), phone, address. `place_id` = dedup key.
-- **Ping**: Find Place returns JSON `status` in {OK, ZERO_RESULTS}; `REQUEST_DENIED` = bad key.
-
 ## Unipile — LinkedIn discovery/DM, Email send, unified inbox (`unipile`)
 
 - **Env**: `UNIPILE_DSN` (workspace base URL incl. port), `UNIPILE_API_KEY`

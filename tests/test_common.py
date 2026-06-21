@@ -10,10 +10,10 @@ from _common import ConfigError, require_env
 
 def test_require_env_names_missing(monkeypatch):
     monkeypatch.setattr(_common, "_ENV_LOADED", True)  # skip .env file read
-    monkeypatch.delenv("GOOGLE_PLACES_API_KEY", raising=False)
+    monkeypatch.delenv("HUNTER_API_KEY", raising=False)
     with pytest.raises(ConfigError) as exc:
-        require_env("GOOGLE_PLACES_API_KEY")
-    assert "GOOGLE_PLACES_API_KEY" in str(exc.value)
+        require_env("HUNTER_API_KEY")
+    assert "HUNTER_API_KEY" in str(exc.value)
     assert ".env" in str(exc.value)
 
 
