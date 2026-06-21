@@ -14,7 +14,7 @@ from __future__ import annotations
 import argparse
 import json
 
-from _common import ConfigError, require_env, request
+from _common import ConfigError, oauth1_header, require_env, request
 
 PROVIDER = "x"
 BASE = "https://api.twitter.com"
@@ -23,6 +23,15 @@ BASE = "https://api.twitter.com"
 def _auth_header() -> dict:
     (token,) = require_env("X_BEARER_TOKEN")
     return {"Authorization": f"Bearer {token}"}
+
+
+def _dm_auth(method: str, url: str) -> dict:
+    """OAuth 1.0a user-context header for DM sending (the app bearer can't send DMs)."""
+    ck, cs, tok, sec = require_env(
+        "X_API_KEY", "X_API_SECRET", "X_ACCESS_TOKEN", "X_ACCESS_SECRET"
+    )
+    return {"Authorization": oauth1_header(method, url, ck, cs, tok, sec),
+            "content-type": "application/json"}
 
 
 def ping() -> dict:
@@ -104,11 +113,8 @@ def dm(lead_id: int, message: str, *, auto: bool = False, path: str | None = Non
         return {"ok": False, "detail": "lead is not an X profile with an id"}
 
     if auto:
-        request(
-            PROVIDER, "POST",
-            f"{BASE}/2/dm_conversations/with/{lead['external_id']}/messages",
-            headers=_auth_header(), json={"text": message},
-        )
+        url = f"{BASE}/2/dm_conversations/with/{lead['external_id']}/messages"
+        request(PROVIDER, "POST", url, headers=_dm_auth("POST", url), json={"text": message})
 
     status = "sent" if auto else "draft"
     mid = crm.log_message(lead_id, "twitter", "outbound", message, status=status, path=path)
