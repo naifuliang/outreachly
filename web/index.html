@@ -56,6 +56,21 @@
       </section>
 
       <section class="panel">
+        <h2 data-i18n="icp"></h2>
+        <p class="tagline" data-i18n="icpHint" style="margin: 0 0 10px"></p>
+        <textarea id="icp" rows="10" spellcheck="false"
+          style="width: 100%; background: #0e1219; color: var(--fg); border: 1px solid var(--line);
+                 border-radius: 8px; padding: 10px; font-family: ui-monospace, monospace;
+                 font-size: 13px; resize: vertical"></textarea>
+        <div style="margin-top: 10px; display: flex; align-items: center; gap: 12px">
+          <button id="icpSave"
+            style="background: var(--accent); border: none; color: #0b0d12; font-weight: 600;
+                   padding: 8px 16px; border-radius: 8px; cursor: pointer"></button>
+          <span id="icpMsg" class="empty"></span>
+        </div>
+      </section>
+
+      <section class="panel">
         <h2 data-i18n="providers"></h2>
         <div class="prov" id="providers"><span class="empty" data-i18n="checking"></span></div>
       </section>
@@ -80,6 +95,10 @@
           offline: "Offline — start with: python scripts/serve_ui.py",
           providers: "Provider connectivity", leads: "Leads", noLeads: "No leads yet.",
           roadmap: "Roadmap",
+          icp: "Ideal Customer Profile (ICP)",
+          icpHint: "Edit the active ICP as JSON, then Save. Invalid fields are reported.",
+          icpEmpty: "No active ICP yet — ask Claude to generate one, or paste JSON here.",
+          save: "Save", icpSaved: "Saved.", icpInvalid: "Invalid:",
           cols: { id: "ID", name: "Name", email: "Email", status: "Status", score: "Score" },
           phases: ["Scaffold & foundations", "ICP engine", "CRM & leads",
             "Maps discovery & email enrichment", "Sequences, send & reply",
@@ -92,6 +111,10 @@
           offline: "离线 —— 启动:python scripts/serve_ui.py",
           providers: "渠道连通性", leads: "线索", noLeads: "暂无线索。",
           roadmap: "路线图",
+          icp: "理想客户画像(ICP)",
+          icpHint: "以 JSON 编辑当前画像后保存。非法字段会被提示。",
+          icpEmpty: "暂无画像 —— 让 Claude 生成,或在此粘贴 JSON。",
+          save: "保存", icpSaved: "已保存。", icpInvalid: "不合法:",
           cols: { id: "编号", name: "名称", email: "邮箱", status: "状态", score: "评分" },
           phases: ["脚手架与基建", "画像引擎", "CRM 与线索",
             "Maps 采集与邮箱增强", "序列、发送与回复",
@@ -111,6 +134,9 @@
         });
         document.querySelectorAll(".lang button").forEach((b) =>
           b.classList.toggle("active", b.dataset.lng === lang));
+
+        document.getElementById("icpSave").textContent = t.save;
+        document.getElementById("icp").placeholder = t.icpEmpty;
 
         const h = document.getElementById("health");
         if (lastHealth) h.innerHTML = `<span class="dot ok"></span>${t.online(lastHealth.leads)}`;
@@ -140,6 +166,36 @@
         ).join("");
       }
 
+      async function loadIcp() {
+        try {
+          const d = await (await fetch("/api/icp")).json();
+          const ta = document.getElementById("icp");
+          if (d.icp) ta.value = JSON.stringify(d.icp, null, 2);
+        } catch (e) {}
+      }
+
+      async function saveIcp() {
+        const t = I18N[lang];
+        const msg = document.getElementById("icpMsg");
+        let body;
+        try {
+          body = JSON.parse(document.getElementById("icp").value);
+        } catch (e) {
+          msg.textContent = `${t.icpInvalid} JSON`;
+          return;
+        }
+        try {
+          const r = await (await fetch("/api/icp", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          })).json();
+          msg.textContent = r.ok ? t.icpSaved : `${t.icpInvalid} ${(r.errors || []).join("; ")}`;
+        } catch (e) {
+          msg.textContent = String(e);
+        }
+      }
+
       async function load() {
         try {
           const health = await (await fetch("/api/health")).json();
@@ -147,6 +203,7 @@
           lastLeads = (await (await fetch("/api/leads")).json()).leads || [];
           fetch("/api/providers").then((r) => r.json())
             .then((d) => renderProviders(d.providers || {})).catch(() => {});
+          loadIcp();
         } catch (e) { lastHealth = null; }
         render();
       }
@@ -155,6 +212,7 @@
         b.addEventListener("click", () => {
           lang = b.dataset.lng; localStorage.setItem("lang", lang); render();
         }));
+      document.getElementById("icpSave").addEventListener("click", saveIcp);
 
       render();
       load();

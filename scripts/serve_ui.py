@@ -19,6 +19,7 @@ from pathlib import Path
 import crm
 import discover_maps
 import find_email
+import icp as icp_mod
 import linkedin
 import send_email
 import twitter
@@ -58,6 +59,8 @@ class Handler(BaseHTTPRequestHandler):
                 self._json({"status": "ok", "leads": len(leads)})
             elif path == "/api/leads":
                 self._json({"leads": crm.list_leads()})
+            elif path == "/api/icp":
+                self._json({"icp": icp_mod.load_icp()})
             elif path == "/api/providers":
                 results = {}
                 for name, fn in PROVIDER_PINGS.items():
@@ -70,6 +73,24 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(404, b"not found", "text/plain")
         except Exception as exc:  # keep the dev server alive
             self._json({"error": str(exc)})
+
+    def do_POST(self) -> None:  # noqa: N802
+        path = self.path.split("?", 1)[0]
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+            raw = self.rfile.read(length) if length else b"{}"
+            if path == "/api/icp":
+                try:
+                    payload = json.loads(raw.decode("utf-8"))
+                except json.JSONDecodeError as exc:
+                    self._json({"ok": False, "errors": [f"invalid JSON: {exc}"]})
+                    return
+                errors = icp_mod.save_icp(payload)
+                self._json({"ok": not errors, "errors": errors})
+            else:
+                self._send(404, b"not found", "text/plain")
+        except Exception as exc:
+            self._json({"ok": False, "errors": [str(exc)]})
 
     def log_message(self, *args) -> None:  # quieter console
         return
