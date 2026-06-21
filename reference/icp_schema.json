@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://outreachly.dev/schemas/icp.json",
+  "title": "Ideal Customer Profile",
+  "description": "Structured target definition that drives lead discovery across all channels.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["industries", "titles", "keywords"],
+  "properties": {
+    "product": { "type": "string", "description": "The product/offer this ICP is for." },
+    "industries": {
+      "type": "array", "items": { "type": "string" }, "minItems": 1,
+      "description": "Target industries / verticals."
+    },
+    "company_size": {
+      "type": "string", "description": "Target company size band.",
+      "enum": ["solo", "1-10", "11-50", "51-200", "201-1000", "1000+", "any"]
+    },
+    "geographies": {
+      "type": "array", "items": { "type": "string" },
+      "description": "Target locations (city / region / country)."
+    },
+    "titles": {
+      "type": "array", "items": { "type": "string" }, "minItems": 1,
+      "description": "Decision-maker job titles to target."
+    },
+    "pain_points": {
+      "type": "array", "items": { "type": "string" },
+      "description": "Pains the product addresses (used for personalization)."
+    },
+    "buying_signals": {
+      "type": "array", "items": { "type": "string" },
+      "description": "Observable triggers indicating readiness (hiring, funding, tech adopted)."
+    },
+    "keywords": {
+      "type": "array", "items": { "type": "string" }, "minItems": 1,
+      "description": "Search keywords used by discovery (Places text / X search / LinkedIn)."
+    },
+    "channels": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["email", "linkedin", "twitter"] },
+      "description": "Channels to pursue for this ICP."
+    },
+    "language": {
+      "type": "string", "enum": ["en", "zh"], "default": "en",
+      "description": "Preferred outreach language."
+    }
+  }
+}

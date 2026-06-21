@@ -1,0 +1,6 @@
+# Outreachly skill — the only third-party dependency is httpx (external API calls).
+# Everything else (sqlite3, http.server, argparse, json) is the Python standard library.
+httpx==0.28.1
+
+# Dev only:
+pytest==8.3.4

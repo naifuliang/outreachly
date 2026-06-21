@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Outreachly</title>
+    <style>
+      :root {
+        --bg: #0b0d12; --panel: #151922; --fg: #e8eaed; --muted: #9aa3b2;
+        --accent: #6ea8fe; --ok: #4ade80; --bad: #f87171; --line: #222838;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; background: var(--bg); color: var(--fg);
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC",
+          "Microsoft YaHei", sans-serif;
+      }
+      .container { max-width: 860px; margin: 0 auto; padding: 48px 24px; }
+      header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+      h1 { margin: 0; font-size: 28px; letter-spacing: -0.02em; }
+      .tagline { color: var(--muted); margin: 4px 0 24px; }
+      .lang button {
+        background: transparent; border: 1px solid var(--line); color: var(--muted);
+        padding: 6px 12px; border-radius: 8px; cursor: pointer; margin-left: 8px;
+      }
+      .lang button.active { color: var(--fg); border-color: var(--accent); }
+      .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 22px; margin-top: 18px; }
+      .panel h2 { font-size: 15px; margin: 0 0 12px; color: var(--fg); }
+      .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; }
+      .dot.ok { background: var(--ok); } .dot.bad { background: var(--bad); }
+      .prov { display: flex; flex-wrap: wrap; gap: 8px; }
+      .chip { border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: 13px; color: var(--muted); }
+      table { width: 100%; border-collapse: collapse; font-size: 14px; }
+      th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+      th { color: var(--muted); font-weight: 500; }
+      .empty { color: var(--muted); padding: 8px 0; }
+      ul.phases { list-style: none; padding: 0; margin: 0; }
+      ul.phases li { padding: 7px 0; border-bottom: 1px solid #1f2533; color: var(--muted); }
+      ul.phases li:last-child { border-bottom: none; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>Outreachly</h1>
+        <div class="lang">
+          <button data-lng="en">EN</button>
+          <button data-lng="zh">中文</button>
+        </div>
+      </header>
+      <p class="tagline" data-i18n="tagline"></p>
+
+      <section class="panel">
+        <h2 data-i18n="status"></h2>
+        <p id="health"><span class="dot bad"></span><span data-i18n="checking"></span></p>
+      </section>
+
+      <section class="panel">
+        <h2 data-i18n="providers"></h2>
+        <div class="prov" id="providers"><span class="empty" data-i18n="checking"></span></div>
+      </section>
+
+      <section class="panel">
+        <h2 data-i18n="leads"></h2>
+        <div id="leads"><span class="empty" data-i18n="noLeads"></span></div>
+      </section>
+
+      <section class="panel">
+        <h2 data-i18n="roadmap"></h2>
+        <ul class="phases" id="phases"></ul>
+      </section>
+    </div>
+
+    <script>
+      const I18N = {
+        en: {
+          tagline: "From an idea to replies — cold outreach on autopilot.",
+          status: "Skill status", checking: "Checking…",
+          online: (n) => `Online · ${n} lead(s) in CRM`,
+          offline: "Offline — start with: python scripts/serve_ui.py",
+          providers: "Provider connectivity", leads: "Leads", noLeads: "No leads yet.",
+          roadmap: "Roadmap",
+          cols: { id: "ID", name: "Name", email: "Email", status: "Status", score: "Score" },
+          phases: ["Scaffold & foundations", "ICP engine", "CRM & leads",
+            "Maps discovery & email enrichment", "Sequences, send & reply",
+            "LinkedIn & Twitter channels", "Analytics & polish"],
+        },
+        zh: {
+          tagline: "从一个想法到收到回复 —— 冷启动触达,全自动。",
+          status: "Skill 状态", checking: "检测中…",
+          online: (n) => `在线 · CRM 中 ${n} 条线索`,
+          offline: "离线 —— 启动:python scripts/serve_ui.py",
+          providers: "渠道连通性", leads: "线索", noLeads: "暂无线索。",
+          roadmap: "路线图",
+          cols: { id: "编号", name: "名称", email: "邮箱", status: "状态", score: "评分" },
+          phases: ["脚手架与基建", "画像引擎", "CRM 与线索",
+            "Maps 采集与邮箱增强", "序列、发送与回复",
+            "LinkedIn 与 Twitter 渠道", "数据看板与打磨"],
+        },
+      };
+
+      let lang = localStorage.getItem("lang") || "en";
+      let lastHealth = null, lastLeads = [];
+
+      function render() {
+        const t = I18N[lang];
+        document.documentElement.lang = lang;
+        document.querySelectorAll("[data-i18n]").forEach((el) => {
+          const v = t[el.dataset.i18n];
+          if (typeof v === "string") el.textContent = v;
+        });
+        document.querySelectorAll(".lang button").forEach((b) =>
+          b.classList.toggle("active", b.dataset.lng === lang));
+
+        const h = document.getElementById("health");
+        if (lastHealth) h.innerHTML = `<span class="dot ok"></span>${t.online(lastHealth.leads)}`;
+        else h.innerHTML = `<span class="dot bad"></span>${t.offline}`;
+
+        const ph = document.getElementById("phases");
+        ph.innerHTML = t.phases.map((p, i) => `<li>P${i} · ${p}</li>`).join("");
+
+        const ld = document.getElementById("leads");
+        if (!lastLeads.length) ld.innerHTML = `<span class="empty">${t.noLeads}</span>`;
+        else {
+          const c = t.cols;
+          ld.innerHTML =
+            `<table><thead><tr><th>${c.id}</th><th>${c.name}</th><th>${c.email}</th>` +
+            `<th>${c.status}</th><th>${c.score}</th></tr></thead><tbody>` +
+            lastLeads.map((r) =>
+              `<tr><td>#${r.id}</td><td>${r.name || "—"}</td><td>${r.email || "—"}</td>` +
+              `<td>${r.status}</td><td>${r.score ?? 0}</td></tr>`).join("") +
+            `</tbody></table>`;
+        }
+      }
+
+      function renderProviders(providers) {
+        const box = document.getElementById("providers");
+        box.innerHTML = Object.entries(providers).map(([name, r]) =>
+          `<span class="chip"><span class="dot ${r.ok ? "ok" : "bad"}"></span>${name}</span>`
+        ).join("");
+      }
+
+      async function load() {
+        try {
+          const health = await (await fetch("/api/health")).json();
+          lastHealth = health;
+          lastLeads = (await (await fetch("/api/leads")).json()).leads || [];
+          fetch("/api/providers").then((r) => r.json())
+            .then((d) => renderProviders(d.providers || {})).catch(() => {});
+        } catch (e) { lastHealth = null; }
+        render();
+      }
+
+      document.querySelectorAll(".lang button").forEach((b) =>
+        b.addEventListener("click", () => {
+          lang = b.dataset.lng; localStorage.setItem("lang", lang); render();
+        }));
+
+      render();
+      load();
+    </script>
+  </body>
+</html>
