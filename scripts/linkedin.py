@@ -34,7 +34,7 @@ def ping() -> dict:
     except ConfigError as exc:
         return {"provider": PROVIDER, "ok": False, "detail": str(exc)}
     try:
-        resp = request(PROVIDER, "GET", f"{base}/api/v1/accounts", headers=headers)
+        resp = request(PROVIDER, "GET", f"{base}/api/v1/accounts", headers=headers, use_proxy=False)
         data = resp.json()
         items = data.get("items", data if isinstance(data, list) else [])
         return {"provider": PROVIDER, "ok": True, "detail": f"{len(items)} account(s)"}
@@ -47,7 +47,7 @@ def linkedin_account_id(base: str, headers: dict) -> str | None:
     override = os.environ.get("UNIPILE_ACCOUNT_ID")
     if override:
         return override
-    resp = request(PROVIDER, "GET", f"{base}/api/v1/accounts", headers=headers)
+    resp = request(PROVIDER, "GET", f"{base}/api/v1/accounts", headers=headers, use_proxy=False)
     data = resp.json()
     items = data.get("items", data if isinstance(data, list) else [])
     for it in items:
@@ -90,6 +90,7 @@ def search_linkedin(keywords: str, max_results: int = 10, path: str | None = Non
         headers=headers,
         params={"account_id": account_id, "limit": max(1, min(max_results, 50))},
         json={"api": "classic", "category": "people", "keywords": keywords},
+        use_proxy=False,
     )
     data = resp.json()
     items = data.get("items", data if isinstance(data, list) else [])

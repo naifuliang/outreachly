@@ -74,11 +74,16 @@ def request(
     *,
     timeout: float = 15.0,
     max_retries: int = 2,
+    use_proxy: bool = True,
     **kwargs,
 ):
     """Thin httpx request with retry on 429/5xx/network and normalized ApiError.
 
     Imported lazily so scripts that never hit the network don't require httpx.
+
+    `use_proxy` maps to httpx `trust_env`: when True (default) the environment proxy is honored
+    (needed for region-blocked APIs like X); set False to connect directly — required for
+    providers on non-standard ports a CONNECT proxy can't tunnel (e.g. Unipile's DSN port).
     """
     import httpx
 
@@ -86,7 +91,7 @@ def request(
     while True:
         attempt += 1
         try:
-            resp = httpx.request(method, url, timeout=timeout, **kwargs)
+            resp = httpx.request(method, url, timeout=timeout, trust_env=use_proxy, **kwargs)
         except httpx.HTTPError as exc:
             if attempt > max_retries:
                 raise ApiError(provider, f"network error: {exc}") from exc
