@@ -63,9 +63,11 @@ def test_send_records_step(tmp_path):
     lid, _ = crm.upsert_lead({"source": "linkedin", "external_id": "u1", "name": "A",
                               "email": "a@acme.com", "email_status": "valid"}, db)
     crm.mark_contacted(lid, db)
+    # a draft records its step (but drafts don't drive cadence)
     send_email.send_email(lid, "Follow-up", "second touch", step=1, path=db)
     assert crm.last_outbound(lid, db)["sequence_step"] == 1
-    # now next due step is 2
+    # a real SENT step-1 touch advances the cadence to next_step 2
+    crm.log_message(lid, "email", "outbound", "sent step1", status="sent", sequence_step=1, path=db)
     future = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(days=5)
     due = sequence.due_followups(now=future, gap_days=3, max_steps=3, path=db)
     assert due and due[0]["next_step"] == 2

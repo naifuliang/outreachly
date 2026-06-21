@@ -29,7 +29,7 @@ def test_log_and_list_messages(tmp_path):
     db = str(tmp_path / "t.sqlite")
     crm.init_db(db)
     lid, _ = crm.upsert_lead({"source": "linkedin", "external_id": "u1", "name": "A"}, db)
-    mid = crm.log_message(lid, "email", "outbound", "hello", subject="hi", path=db)
+    mid = crm.log_message(lid, "email", "outbound", "hello", subject="hi", status="sent", path=db)
     assert mid > 0
     msgs = crm.list_messages(lid, db)
     assert len(msgs) == 1 and msgs[0]["direction"] == "outbound" and msgs[0]["sent_at"]

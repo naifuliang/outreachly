@@ -16,12 +16,19 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import os
 from pathlib import Path
 
-from _common import REPO_ROOT
+from _common import REPO_ROOT, load_env
 
 SCHEMA_PATH = REPO_ROOT / "reference" / "icp_schema.json"
-ICP_PATH = REPO_ROOT / "data" / "icp.json"
+DEFAULT_ICP_PATH = REPO_ROOT / "data" / "icp.json"
+
+
+def icp_path() -> Path:
+    """Active-ICP file path. Override with OUTREACHLY_ICP (lets temp/test runs isolate it)."""
+    load_env()
+    return Path(os.environ.get("OUTREACHLY_ICP") or DEFAULT_ICP_PATH)
 
 TEMPLATE = {
     "product": "",
@@ -53,17 +60,19 @@ def validate(icp: dict) -> list[str]:
     return errors
 
 
-def save_icp(icp: dict, path: Path = ICP_PATH) -> list[str]:
+def save_icp(icp: dict, path: Path | None = None) -> list[str]:
     """Validate then persist. Returns errors; saves only if valid."""
     errors = validate(icp)
     if errors:
         return errors
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(icp, ensure_ascii=False, indent=2), encoding="utf-8")
+    target = Path(path) if path else icp_path()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(json.dumps(icp, ensure_ascii=False, indent=2), encoding="utf-8")
     return []
 
 
-def load_icp(path: Path = ICP_PATH) -> dict | None:
+def load_icp(path: Path | None = None) -> dict | None:
+    path = Path(path) if path else icp_path()
     if not path.exists():
         return None
     return json.loads(path.read_text(encoding="utf-8"))
@@ -114,7 +123,7 @@ def main() -> int:
             for e in errors:
                 print(f"  - {e}")
             return 1
-        print(f"Saved active ICP → {ICP_PATH}")
+        print(f"Saved active ICP → {icp_path()}")
         return 0
     if args.cmd == "show":
         icp = load_icp()
