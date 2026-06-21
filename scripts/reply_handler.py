@@ -88,6 +88,50 @@ def _fetch_unipile_inbound() -> list[dict]:
     return out
 
 
+# Unipile account types that are email mailboxes (Gmail=GOOGLE_OAUTH, Outlook=MICROSOFT/OUTLOOK).
+_EMAIL_KINDS = ("GOOGLE", "GMAIL", "MICROSOFT", "OUTLOOK", "MAIL", "IMAP", "EMAIL")
+# Email folders/roles that are NOT received replies.
+_NON_INBOUND_ROLES = ("sent", "drafts", "draft", "trash", "spam", "junk")
+
+
+def _fetch_unipile_emails() -> list[dict]:
+    """Received emails (replies) from connected mailboxes via Unipile. Defensive; [] if unconfigured.
+
+    Email shape differs from messaging: sender is `from_attendee.identifier`, direction is the
+    `role`/folder, body is `body_plain`. Only received mail (not sent/drafts) is returned.
+    """
+    dsn = os.environ.get("UNIPILE_DSN")
+    key = os.environ.get("UNIPILE_API_KEY")
+    if not (dsn and key):
+        return []
+    base = dsn.rstrip("/")
+    headers = {"X-API-KEY": key, "accept": "application/json"}
+    accounts = request("unipile", "GET", f"{base}/api/v1/accounts", headers=headers, use_proxy=False)
+    accounts = accounts.json()
+    accounts = accounts.get("items", accounts if isinstance(accounts, list) else [])
+    out: list[dict] = []
+    for acc in accounts:
+        kind = str(acc.get("type") or acc.get("provider") or "").upper()
+        if not any(k in kind for k in _EMAIL_KINDS):
+            continue
+        aid = acc.get("id") or acc.get("account_id")
+        resp = request("unipile", "GET", f"{base}/api/v1/emails", headers=headers,
+                       params={"account_id": aid, "limit": 50}, use_proxy=False)
+        for e in resp.json().get("items", []):
+            if str(e.get("role") or "").lower() in _NON_INBOUND_ROLES:
+                continue  # only received mail counts as a reply
+            frm = e.get("from_attendee") or {}
+            sender = frm.get("identifier") if isinstance(frm, dict) else None
+            out.append({
+                "external_message_id": e.get("id"),
+                "sender_id": None,
+                "sender_email": sender,
+                "channel": "email",
+                "body": e.get("body_plain") or e.get("body") or "",
+            })
+    return out
+
+
 def _fetch_x_inbound() -> list[dict]:
     """Inbound X DMs. Defensive; [] if not configured."""
     token = os.environ.get("X_BEARER_TOKEN")
@@ -118,7 +162,7 @@ def sync(path: str | None = None) -> dict:
     seen = _seen_reply_ids(path)
     inbound: list[dict] = []
     errors: list[str] = []
-    for fetch in (_fetch_unipile_inbound, _fetch_x_inbound):
+    for fetch in (_fetch_unipile_inbound, _fetch_unipile_emails, _fetch_x_inbound):
         try:  # best-effort: one provider failing must not abort the sync
             inbound += fetch()
         except Exception as exc:

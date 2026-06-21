@@ -76,6 +76,7 @@ def test_sync_matches_linkedin_reply_with_unknown_channel(tmp_path, monkeypatch)
     inbound = [{"external_message_id": "m1", "sender_id": "li-9", "sender_email": None,
                 "channel": "MESSAGING", "body": "yes!"}]  # non-'linkedin' provider string
     monkeypatch.setattr(reply_handler, "_fetch_unipile_inbound", lambda: inbound)
+    monkeypatch.setattr(reply_handler, "_fetch_unipile_emails", lambda: [])
     monkeypatch.setattr(reply_handler, "_fetch_x_inbound", lambda: [])
     res = reply_handler.sync(path=db)
     assert res["recorded"] == 1
