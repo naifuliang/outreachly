@@ -102,6 +102,35 @@ def test_sync_records_email_reply_by_email(tmp_path, monkeypatch):
     assert crm.get_lead(lid, db)["status"] == "replied"  # email reply stops the sequence
 
 
+def test_sync_dedups_same_id_within_one_batch(tmp_path, monkeypatch):
+    db = str(tmp_path / "t.sqlite")
+    crm.init_db(db)
+    lid, _ = crm.upsert_lead({"source": "manual", "external_id": "p1", "name": "P",
+                              "email": "prospect@acme.com"}, db)
+    crm.mark_contacted(lid, db)
+    dup = {"external_message_id": "same-1", "sender_id": None, "sender_email": "prospect@acme.com",
+           "channel": "email", "body": "yes"}
+    monkeypatch.setattr(reply_handler, "_fetch_unipile_inbound", lambda: [])
+    monkeypatch.setattr(reply_handler, "_fetch_x_inbound", lambda: [])
+    monkeypatch.setattr(reply_handler, "_fetch_unipile_emails", lambda: [dup, dict(dup)])
+    res = reply_handler.sync(path=db)
+    assert res["recorded"] == 1  # same external_message_id within one batch → recorded once
+
+
+def test_fetch_emails_skips_non_dict_items(monkeypatch):
+    monkeypatch.setenv("UNIPILE_DSN", "https://api.unipile")
+    monkeypatch.setenv("UNIPILE_API_KEY", "k")
+    emails = {"items": ["garbage", {"id": "e1", "role": "inbox",
+              "from_attendee": {"identifier": "p@acme.com"}, "body_plain": "hi"}]}
+
+    def dispatch(provider, method, url, **kw):
+        return _Resp({"items": [{"id": "g1", "type": "GOOGLE_OAUTH"}]}) if url.endswith("/accounts") else _Resp(emails)
+
+    monkeypatch.setattr(reply_handler, "request", dispatch)
+    out = reply_handler._fetch_unipile_emails()  # must not crash on the "garbage" string item
+    assert len(out) == 1 and out[0]["sender_email"] == "p@acme.com"
+
+
 def test_replied_lead_stops_sequence(tmp_path):
     db = str(tmp_path / "t.sqlite")
     crm.init_db(db)

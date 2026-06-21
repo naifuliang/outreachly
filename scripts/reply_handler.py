@@ -115,9 +115,13 @@ def _fetch_unipile_emails() -> list[dict]:
         if not any(k in kind for k in _EMAIL_KINDS):
             continue
         aid = acc.get("id") or acc.get("account_id")
+        if not aid:
+            continue
         resp = request("unipile", "GET", f"{base}/api/v1/emails", headers=headers,
                        params={"account_id": aid, "limit": 50}, use_proxy=False)
         for e in resp.json().get("items", []):
+            if not isinstance(e, dict):
+                continue
             if str(e.get("role") or "").lower() in _NON_INBOUND_ROLES:
                 continue  # only received mail counts as a reply
             frm = e.get("from_attendee") or {}
@@ -169,15 +173,17 @@ def sync(path: str | None = None) -> dict:
             errors.append(str(exc))
     recorded = 0
     for m in inbound:
-        if m.get("external_message_id") in seen:
+        ext = m.get("external_message_id")
+        if ext and ext in seen:
             continue
         source = "twitter" if m["channel"] == "twitter" else ("linkedin" if m["channel"] in ("linkedin",) else None)
         lead = crm.find_lead_by(source=source, external_id=m.get("sender_id"),
                                 email=m.get("sender_email"), path=path)
         if not lead:
             continue
-        record_reply(lead["id"], m["channel"], m["body"],
-                     external_message_id=m.get("external_message_id"), path=path)
+        record_reply(lead["id"], m["channel"], m["body"], external_message_id=ext, path=path)
+        if ext:
+            seen.add(ext)  # dedup within this batch too, not just across runs
         recorded += 1
     return {"fetched": len(inbound), "recorded": recorded, "errors": errors}
 
