@@ -396,6 +396,22 @@ def latest_inbound(lead_id: int, path: str | None = None) -> dict | None:
         conn.close()
 
 
+def stats(path: str | None = None) -> dict:
+    """Funnel/analytics counts: leads by status, leads by source, totals."""
+    conn = connect(path)
+    try:
+        by_status = {r["status"]: r["n"] for r in conn.execute(
+            "SELECT status, COUNT(*) AS n FROM leads GROUP BY status")}
+        by_source = {r["source"]: r["n"] for r in conn.execute(
+            "SELECT source, COUNT(*) AS n FROM leads GROUP BY source")}
+        total_leads = conn.execute("SELECT COUNT(*) AS n FROM leads").fetchone()["n"]
+        total_messages = conn.execute("SELECT COUNT(*) AS n FROM messages").fetchone()["n"]
+        return {"by_status": by_status, "by_source": by_source,
+                "total_leads": total_leads, "total_messages": total_messages}
+    finally:
+        conn.close()
+
+
 def log_event(event_type: str, *, lead_id: int | None = None, campaign_id: int | None = None,
               payload: dict | None = None, path: str | None = None) -> int:
     conn = connect(path)
