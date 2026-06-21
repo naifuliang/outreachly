@@ -1,12 +1,14 @@
 """CRM: local SQLite store for leads, campaigns, messages, events.
 
 Owns the schema and the data primitives the other scripts use: init, dedup-aware upsert,
-status transitions, and listing. Scoring/state-machine rules are filled in at P2.
+ICP-match scoring, the lead status state machine, and listing.
 
 CLI:
-  python scripts/crm.py init                 # create the schema (idempotent)
-  python scripts/crm.py list [--status new]  # list leads
+  python scripts/crm.py init                       # create the schema (idempotent)
+  python scripts/crm.py list [--status new]        # list leads
   python scripts/crm.py add --source maps --name "Acme" --email a@acme.com   # (test helper)
+  python scripts/crm.py rescore                     # score all leads against the active ICP
+  python scripts/crm.py status --lead 1 --to contacted   # transition a lead's status
 """
 
 from __future__ import annotations
@@ -152,6 +154,97 @@ def list_leads(status: str | None = None, path: str | None = None) -> list[dict]
         conn.close()
 
 
+# --- ICP-match scoring (0-100) ---------------------------------------------------------------
+
+def score_lead(lead: dict, icp: dict) -> int:
+    """Score how well a lead matches an ICP, 0-100. Transparent weighted overlap:
+    keywords 40, industries 25, titles 20, geographies 15 (full 15 if the ICP names no geos).
+    """
+    hay = " ".join(
+        str(lead.get(k) or "")
+        for k in ("name", "company", "website", "domain", "title", "location", "profile")
+    ).lower()
+
+    def frac_hit(terms: list[str]) -> float:
+        terms = [t for t in terms if t]
+        if not terms:
+            return 0.0
+        return sum(1 for t in terms if t.lower() in hay) / len(terms)
+
+    def any_hit(terms: list[str]) -> bool:
+        return any(t and t.lower() in hay for t in terms)
+
+    score = 40 * frac_hit(icp.get("keywords", []))
+    score += 25 if any_hit(icp.get("industries", [])) else 0
+    score += 20 if any_hit(icp.get("titles", [])) else 0
+    geos = [g for g in icp.get("geographies", []) if g]
+    score += 15 if (not geos or any_hit(geos)) else 0
+    return round(min(100.0, score))
+
+
+def rescore_all(icp: dict, path: str | None = None) -> int:
+    """Recompute every lead's score against `icp`. Returns the number of leads scored."""
+    conn = connect(path)
+    try:
+        rows = conn.execute("SELECT * FROM leads").fetchall()
+        for r in rows:
+            conn.execute(
+                "UPDATE leads SET score=?, updated_at=datetime('now') WHERE id=?",
+                (score_lead(dict(r), icp), r["id"]),
+            )
+        conn.commit()
+        return len(rows)
+    finally:
+        conn.close()
+
+
+# --- Lead status state machine ---------------------------------------------------------------
+
+ALLOWED_TRANSITIONS: dict[str, set[str]] = {
+    "new": {"contacted", "rejected"},
+    "contacted": {"replied", "rejected"},
+    "replied": {"converted", "rejected"},
+    "converted": set(),
+    "rejected": set(),
+}
+
+
+class IllegalTransition(ValueError):
+    """Raised when a lead status change is not permitted by the state machine."""
+
+
+def get_lead(lead_id: int, path: str | None = None) -> dict | None:
+    conn = connect(path)
+    try:
+        row = conn.execute("SELECT * FROM leads WHERE id=?", (lead_id,)).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def set_status(lead_id: int, new_status: str, path: str | None = None) -> str:
+    """Transition a lead's status, enforcing ALLOWED_TRANSITIONS. Returns the new status."""
+    conn = connect(path)
+    try:
+        row = conn.execute("SELECT status FROM leads WHERE id=?", (lead_id,)).fetchone()
+        if row is None:
+            raise IllegalTransition(f"lead #{lead_id} not found")
+        current = row["status"]
+        if new_status not in ALLOWED_TRANSITIONS.get(current, set()):
+            allowed = sorted(ALLOWED_TRANSITIONS.get(current, set())) or ["(terminal)"]
+            raise IllegalTransition(
+                f"illegal transition {current} → {new_status}; allowed from {current}: {allowed}"
+            )
+        conn.execute(
+            "UPDATE leads SET status=?, updated_at=datetime('now') WHERE id=?",
+            (new_status, lead_id),
+        )
+        conn.commit()
+        return new_status
+    finally:
+        conn.close()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Outreachly CRM (SQLite).")
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -161,6 +254,10 @@ def main() -> int:
     p_add = sub.add_parser("add", help="Add a test lead.")
     for f in ("source", "external-id", "name", "company", "website", "email"):
         p_add.add_argument(f"--{f}")
+    sub.add_parser("rescore", help="Score all leads against the active ICP.")
+    p_st = sub.add_parser("status", help="Transition a lead's status.")
+    p_st.add_argument("--lead", type=int, required=True)
+    p_st.add_argument("--to", required=True, dest="to")
     args = parser.parse_args()
 
     if args.cmd == "init":
@@ -184,6 +281,24 @@ def main() -> int:
             }
         )
         print(f"{'created' if created else 'updated (dedup)'} lead #{lid}")
+        return 0
+    if args.cmd == "rescore":
+        from icp import load_icp
+
+        icp = load_icp()
+        if icp is None:
+            print("No active ICP — generate/save one first (scripts/icp.py).")
+            return 1
+        n = rescore_all(icp)
+        print(f"Scored {n} lead(s) against the active ICP.")
+        return 0
+    if args.cmd == "status":
+        try:
+            new = set_status(args.lead, args.to)
+        except IllegalTransition as exc:
+            print(f"REJECTED: {exc}")
+            return 1
+        print(f"lead #{args.lead} → {new}")
         return 0
     return 0
 
