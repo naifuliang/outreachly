@@ -59,6 +59,14 @@ class Handler(BaseHTTPRequestHandler):
                 self._json({"leads": crm.list_leads()})
             elif path == "/api/icp":
                 self._json({"icp": icp_mod.load_icp()})
+            elif path == "/api/funnel":
+                self._json(crm.stats())
+            elif path.startswith("/api/lead/") and path.endswith("/messages"):
+                try:
+                    lead_id = int(path.split("/")[3])
+                    self._json({"messages": crm.list_messages(lead_id)})
+                except (ValueError, IndexError):
+                    self._send(400, b"bad lead id", "text/plain")
             elif path == "/api/providers":
                 results = {}
                 for name, fn in PROVIDER_PINGS.items():

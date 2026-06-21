@@ -76,8 +76,19 @@
       </section>
 
       <section class="panel">
+        <h2 data-i18n="funnel"></h2>
+        <div class="prov" id="funnel"><span class="empty" data-i18n="checking"></span></div>
+        <div class="prov" id="bychannel" style="margin-top: 10px"></div>
+      </section>
+
+      <section class="panel">
         <h2 data-i18n="leads"></h2>
         <div id="leads"><span class="empty" data-i18n="noLeads"></span></div>
+      </section>
+
+      <section class="panel">
+        <h2 data-i18n="timeline"></h2>
+        <div id="timeline"><span class="empty" data-i18n="selectLead"></span></div>
       </section>
 
       <section class="panel">
@@ -99,6 +110,10 @@
           icpHint: "Edit the active ICP as JSON, then Save. Invalid fields are reported.",
           icpEmpty: "No active ICP yet — ask Claude to generate one, or paste JSON here.",
           save: "Save", icpSaved: "Saved.", icpInvalid: "Invalid:",
+          funnel: "Funnel", byChannel: "By channel", timeline: "Messages",
+          selectLead: "Click a lead to see its messages.", noMessages: "No messages.",
+          statuses: { new: "New", contacted: "Contacted", replied: "Replied",
+            converted: "Converted", rejected: "Rejected" },
           cols: { id: "ID", name: "Name", email: "Email", status: "Status", score: "Score" },
           phases: ["Scaffold & foundations", "ICP engine", "CRM & leads",
             "Email enrichment", "Sequences, send & reply",
@@ -115,6 +130,10 @@
           icpHint: "以 JSON 编辑当前画像后保存。非法字段会被提示。",
           icpEmpty: "暂无画像 —— 让 Claude 生成,或在此粘贴 JSON。",
           save: "保存", icpSaved: "已保存。", icpInvalid: "不合法:",
+          funnel: "漏斗", byChannel: "按渠道", timeline: "消息",
+          selectLead: "点击线索查看其消息。", noMessages: "暂无消息。",
+          statuses: { new: "新", contacted: "已触达", replied: "已回复",
+            converted: "已转化", rejected: "已拒绝" },
           cols: { id: "编号", name: "名称", email: "邮箱", status: "状态", score: "评分" },
           phases: ["脚手架与基建", "画像引擎", "CRM 与线索",
             "邮箱增强", "序列、发送与回复",
@@ -123,7 +142,7 @@
       };
 
       let lang = localStorage.getItem("lang") || "en";
-      let lastHealth = null, lastLeads = [];
+      let lastHealth = null, lastLeads = [], lastStats = null;
 
       function render() {
         const t = I18N[lang];
@@ -145,6 +164,8 @@
         const ph = document.getElementById("phases");
         ph.innerHTML = t.phases.map((p, i) => `<li>P${i} · ${p}</li>`).join("");
 
+        renderFunnel();
+
         const ld = document.getElementById("leads");
         if (!lastLeads.length) ld.innerHTML = `<span class="empty">${t.noLeads}</span>`;
         else {
@@ -153,8 +174,10 @@
             `<table><thead><tr><th>${c.id}</th><th>${c.name}</th><th>${c.email}</th>` +
             `<th>${c.status}</th><th>${c.score}</th></tr></thead><tbody>` +
             lastLeads.map((r) =>
-              `<tr><td>#${r.id}</td><td>${r.name || "—"}</td><td>${r.email || "—"}</td>` +
-              `<td>${r.status}</td><td>${r.score ?? 0}</td></tr>`).join("") +
+              `<tr style="cursor:pointer" onclick="loadTimeline(${r.id})"><td>#${r.id}</td>` +
+              `<td>${r.name || "—"}</td><td>${r.email || "—"}</td>` +
+              `<td>${(t.statuses && t.statuses[r.status]) || r.status}</td>` +
+              `<td>${r.score ?? 0}</td></tr>`).join("") +
             `</tbody></table>`;
         }
       }
@@ -164,6 +187,38 @@
         box.innerHTML = Object.entries(providers).map(([name, r]) =>
           `<span class="chip"><span class="dot ${r.ok ? "ok" : "bad"}"></span>${name}</span>`
         ).join("");
+      }
+
+      function renderFunnel() {
+        const t = I18N[lang];
+        const f = document.getElementById("funnel");
+        const ch = document.getElementById("bychannel");
+        if (!lastStats) { f.innerHTML = `<span class="empty">${t.noLeads}</span>`; ch.innerHTML = ""; return; }
+        const order = ["new", "contacted", "replied", "converted", "rejected"];
+        const bs = lastStats.by_status || {};
+        f.innerHTML = order.map((s) =>
+          `<span class="chip">${t.statuses[s]}: <b>${bs[s] || 0}</b></span>`).join("");
+        const src = lastStats.by_source || {};
+        ch.innerHTML = `<span class="empty">${t.byChannel}:</span> ` +
+          Object.entries(src).map(([s, n]) => `<span class="chip">${s}: <b>${n}</b></span>`).join(" ");
+      }
+
+      async function loadTimeline(id) {
+        const t = I18N[lang];
+        const box = document.getElementById("timeline");
+        try {
+          const msgs = (await (await fetch(`/api/lead/${id}/messages`)).json()).messages || [];
+          if (!msgs.length) { box.innerHTML = `<span class="empty">${t.noMessages}</span>`; return; }
+          box.innerHTML = `<div style="font-size:13px">` + msgs.map((m) => {
+            const dir = m.direction === "outbound" ? "→" : "←";
+            const meta = [m.channel, m.status, m.intent].filter(Boolean).join(" · ");
+            return `<div style="padding:6px 0;border-bottom:1px solid var(--line)">` +
+              `<span style="color:var(--accent)">${dir}</span> ` +
+              `<b>#${id}</b> <span class="empty">${meta}</span>` +
+              `${m.subject ? `<div><b>${m.subject}</b></div>` : ""}` +
+              `<div>${(m.body || "").replace(/</g, "&lt;")}</div></div>`;
+          }).join("") + `</div>`;
+        } catch (e) { box.innerHTML = `<span class="empty">${t.noMessages}</span>`; }
       }
 
       async function loadIcp() {
@@ -201,6 +256,7 @@
           const health = await (await fetch("/api/health")).json();
           lastHealth = health;
           lastLeads = (await (await fetch("/api/leads")).json()).leads || [];
+          lastStats = await (await fetch("/api/funnel")).json();
           fetch("/api/providers").then((r) => r.json())
             .then((d) => renderProviders(d.providers || {})).catch(() => {});
           loadIcp();
