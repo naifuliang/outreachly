@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sqlite3
 from urllib.parse import urlsplit
 
 from _common import connect
@@ -222,7 +223,7 @@ def rescore_all(icp: dict, path: str | None = None) -> int:
 # --- Lead status state machine ---------------------------------------------------------------
 
 ALLOWED_TRANSITIONS: dict[str, set[str]] = {
-    "new": {"contacted", "rejected"},
+    "new": {"contacted", "replied", "rejected"},
     "contacted": {"replied", "rejected"},
     "replied": {"converted", "rejected"},
     "converted": set(),
@@ -278,9 +279,9 @@ def mark_contacted(lead_id: int, path: str | None = None) -> None:
 
 
 def mark_replied(lead_id: int, path: str | None = None) -> None:
-    """Advance a contacted lead to 'replied' (stops the sequence). No-op otherwise."""
+    """Advance a lead to 'replied' on an inbound message (stops the sequence). No-op if terminal."""
     lead = get_lead(lead_id, path)
-    if lead and lead["status"] == "contacted":
+    if lead and lead["status"] in ("new", "contacted"):
         set_status(lead_id, "replied", path)
 
 
@@ -289,12 +290,21 @@ def find_lead_by(*, source: str | None = None, external_id: str | None = None,
     """Look up a lead by (source, external_id) or by email. Returns the row dict or None."""
     conn = connect(path)
     try:
-        if external_id and source:
-            row = conn.execute(
-                "SELECT * FROM leads WHERE source=? AND external_id=?", (source, external_id)
-            ).fetchone()
-            if row:
-                return dict(row)
+        if external_id:
+            if source:
+                row = conn.execute(
+                    "SELECT * FROM leads WHERE source=? AND external_id=?", (source, external_id)
+                ).fetchone()
+                if row:
+                    return dict(row)
+            # Fall back to external_id alone — inbound replies may carry an unreliable/missing
+            # channel string (fixes dropped LinkedIn replies). Only match when UNAMBIGUOUS: if the
+            # same external_id exists across sources, don't guess (avoids cross-source mis-attribution).
+            rows = conn.execute(
+                "SELECT * FROM leads WHERE external_id=?", (external_id,)
+            ).fetchall()
+            if len(rows) == 1:
+                return dict(rows[0])
         if email:
             row = conn.execute("SELECT * FROM leads WHERE email=?", (email,)).fetchone()
             if row:
@@ -327,6 +337,9 @@ def update_lead(lead_id: int, fields: dict, path: str | None = None) -> None:
             [*cols.values(), lead_id],
         )
         conn.commit()
+    except sqlite3.IntegrityError as exc:
+        # Most likely the UNIQUE(email) index: this email already belongs to another lead.
+        raise ValueError(f"update_lead conflict for lead #{lead_id}: {exc}") from exc
     finally:
         conn.close()
 
@@ -350,9 +363,9 @@ def log_message(
         cur = conn.execute(
             "INSERT INTO messages (lead_id, campaign_id, channel, direction, sequence_step, "
             "subject, body, status, intent, sent_at) VALUES (?,?,?,?,?,?,?,?,?, "
-            "CASE WHEN ?='outbound' THEN datetime('now') ELSE NULL END)",
+            "CASE WHEN ?='outbound' AND ?='sent' THEN datetime('now') ELSE NULL END)",
             (lead_id, campaign_id, channel, direction, sequence_step, subject, body,
-             status, intent, direction),
+             status, intent, direction, status),
         )
         conn.commit()
         return int(cur.lastrowid)
@@ -396,13 +409,14 @@ def latest_inbound(lead_id: int, path: str | None = None) -> dict | None:
         conn.close()
 
 
-def last_outbound(lead_id: int, path: str | None = None) -> dict | None:
+def last_outbound(lead_id: int, path: str | None = None, *, sent_only: bool = False) -> dict | None:
+    """Latest outbound message. With sent_only=True, ignore drafts (only real sends count)."""
     conn = connect(path)
     try:
-        row = conn.execute(
-            "SELECT * FROM messages WHERE lead_id=? AND direction='outbound' ORDER BY id DESC LIMIT 1",
-            (lead_id,),
-        ).fetchone()
+        sql = "SELECT * FROM messages WHERE lead_id=? AND direction='outbound'"
+        if sent_only:
+            sql += " AND status='sent'"
+        row = conn.execute(sql + " ORDER BY id DESC LIMIT 1", (lead_id,)).fetchone()
         return dict(row) if row else None
     finally:
         conn.close()
@@ -453,6 +467,8 @@ def main() -> int:
     p_st.add_argument("--lead", type=int, required=True)
     p_st.add_argument("--to", required=True, dest="to")
     args = parser.parse_args()
+
+    init_db()  # ensure schema exists so no subcommand hits a missing-table error
 
     if args.cmd == "init":
         tables = init_db()

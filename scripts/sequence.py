@@ -51,11 +51,12 @@ def due_followups(now: datetime | None = None, gap_days: int | None = None,
     """
     import crm
 
+    crm.init_db(path)  # tolerate a not-yet-initialized DB
     gap, mx = _cfg(gap_days, max_steps)
     ref = now or _utcnow()  # sqlite datetime('now') is UTC
     out = []
     for lead in crm.list_leads(status="contacted", path=path):
-        last = crm.last_outbound(lead["id"], path)
+        last = crm.last_outbound(lead["id"], path, sent_only=True)  # drafts don't drive cadence
         if not last:
             continue
         next_step = (last["sequence_step"] or 0) + 1

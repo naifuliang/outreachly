@@ -140,7 +140,8 @@
       let lang = localStorage.getItem("lang") || "en";
       let D = { health:null, leads:[], stats:null, providers:{}, icp:null };
 
-      const esc = (s)=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+      const esc = (s)=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
       const initials = (n)=>(n||"?").split(/\s+/).slice(0,2).map(w=>w[0]||"").join("").toUpperCase()||"?";
 
       function render(){

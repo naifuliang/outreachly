@@ -70,7 +70,12 @@ def enrich_lead(lead_id: int, path: str | None = None) -> dict:
         crm.log_event("email_search", lead_id=lead_id, payload={"domain": domain, "found": 0}, path=path)
         return {"ok": True, "found": 0, "email": None}
     best = candidates[0]
-    crm.update_lead(lead_id, {"email": best["email"], "email_status": "unknown"}, path)
+    try:
+        crm.update_lead(lead_id, {"email": best["email"], "email_status": "unknown"}, path)
+    except ValueError:
+        # The best email is already assigned to another lead (shared company address).
+        return {"ok": False, "found": len(candidates), "email": best["email"],
+                "detail": "email already assigned to another lead"}
     crm.log_event("email_found", lead_id=lead_id,
                   payload={"domain": domain, "email": best["email"], "confidence": best["confidence"]},
                   path=path)
