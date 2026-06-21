@@ -23,6 +23,7 @@ def ping() -> dict:
         resp = request(
             PROVIDER, "GET", f"{dsn.rstrip('/')}/api/v1/accounts",
             headers={"X-API-KEY": key, "accept": "application/json"},
+            use_proxy=False,
         )
         data = resp.json()
         n = len(data.get("items", data if isinstance(data, list) else []))

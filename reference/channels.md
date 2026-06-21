@@ -21,6 +21,10 @@ to keep the skill entry point lean. All keys live in `.env` (see `.env.example`)
 
 - **Env**: `UNIPILE_DSN` (workspace base URL incl. port), `UNIPILE_API_KEY`
 - **Auth header**: `X-API-KEY: <key>` · **Docs**: https://developer.unipile.com/
+- **Connection**: the DSN uses a **non-standard port** — call it **directly** (our scripts pass
+  `use_proxy=False`); a CONNECT proxy that only allows :443 will time out. You must also connect
+  at least one real account (LinkedIn/WhatsApp/…) via the dashboard's hosted-auth wizard;
+  `GET /api/v1/accounts` returns them.
 - **Use**:
   - List accounts — `GET /api/v1/accounts`
   - LinkedIn search — `GET /api/v1/linkedin/search`
