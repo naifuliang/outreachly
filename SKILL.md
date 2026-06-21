@@ -1,6 +1,6 @@
 ---
 name: outreachly
-description: AI-driven multi-channel cold-outreach autopilot. Use when the user wants to find leads and run cold outreach starting from a product idea or a customer profile — build an ICP (ideal customer profile), discover leads via Google Maps / LinkedIn / Twitter, find and verify emails, write personalized cold-email sequences and DMs, send across Email / LinkedIn / Twitter, and track replies with the local CRM. Bilingual: replies and outreach copy in 中文 or English to match the user.
+description: AI-driven multi-channel cold-outreach autopilot. Use when the user wants to find leads and run cold outreach starting from a product idea or a customer profile — build an ICP (ideal customer profile), discover leads via LinkedIn and Twitter/X, find and verify emails, write personalized cold-email sequences and DMs, send across Email / LinkedIn / Twitter, and track replies with the local CRM. Bilingual: replies and outreach copy in 中文 or English to match the user.
 ---
 
 # Outreachly
@@ -34,7 +34,6 @@ Run any script with `--help`. Check connectivity per provider with `python scrip
    discovery. `icp.py` rejects invalid input naming the offending field.
 
 2. **Discover leads** *(scripts)* — Using the ICP's keywords/geographies:
-   - Google Maps → `python scripts/discover_maps.py run --query "..."`
    - LinkedIn → `python scripts/linkedin.py search --keywords "..."`
    - Twitter/X → `python scripts/twitter.py search --keywords "..."`
    Each upserts into the CRM (deduped).
@@ -67,7 +66,7 @@ without it.
 
 ## Files
 
-- `scripts/` — `icp.py`, `crm.py`, `discover_maps.py`, `find_email.py`, `verify_email.py`,
+- `scripts/` — `icp.py`, `crm.py`, `find_email.py`, `verify_email.py`,
   `send_email.py`, `linkedin.py`, `twitter.py`, `serve_ui.py`, `_common.py`
 - `reference/` — `icp_schema.json`, `channels.md`
 - `web/index.html` — optional UI · `data/` — local SQLite CRM

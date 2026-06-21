@@ -6,7 +6,7 @@ ICP-match scoring, the lead status state machine, and listing.
 CLI:
   python scripts/crm.py init                       # create the schema (idempotent)
   python scripts/crm.py list [--status new]        # list leads
-  python scripts/crm.py add --source maps --name "Acme" --email a@acme.com   # (test helper)
+  python scripts/crm.py add --source linkedin --name "Acme" --email a@acme.com   # (test helper)
   python scripts/crm.py rescore                     # score all leads against the active ICP
   python scripts/crm.py status --lead 1 --to contacted   # transition a lead's status
 """
@@ -110,7 +110,7 @@ def upsert_lead(lead: dict, path: str | None = None) -> tuple[int, bool]:
 
     Dedup order: (source, external_id) → email → domain. Existing rows are updated in place.
     Domain is only used as a dedup key for leads that have neither an external_id nor an email
-    (e.g. a website-only Maps lead). A lead with an external_id is uniquely identified by
+    (e.g. a website-only lead). A lead with an external_id is uniquely identified by
     (source, external_id), so it must not be merged onto a different lead via a shared domain.
     """
     conn = connect(path)

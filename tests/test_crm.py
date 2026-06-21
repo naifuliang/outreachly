@@ -17,8 +17,8 @@ def test_init_is_idempotent(tmp_path):
 def test_upsert_dedups_by_email(tmp_path):
     db = str(tmp_path / "t.sqlite")
     crm.init_db(db)
-    id1, created1 = crm.upsert_lead({"source": "maps", "name": "Acme", "email": "a@acme.com"}, db)
-    id2, created2 = crm.upsert_lead({"source": "maps", "name": "Acme Inc", "email": "a@acme.com"}, db)
+    id1, created1 = crm.upsert_lead({"source": "web", "name": "Acme", "email": "a@acme.com"}, db)
+    id2, created2 = crm.upsert_lead({"source": "web", "name": "Acme Inc", "email": "a@acme.com"}, db)
     assert created1 is True and created2 is False
     assert id1 == id2
     assert len(crm.list_leads(path=db)) == 1
@@ -27,7 +27,7 @@ def test_upsert_dedups_by_email(tmp_path):
 def test_upsert_derives_domain(tmp_path):
     db = str(tmp_path / "t.sqlite")
     crm.init_db(db)
-    crm.upsert_lead({"source": "maps", "name": "Acme", "website": "https://www.acme.com/x"}, db)
+    crm.upsert_lead({"source": "web", "name": "Acme", "website": "https://www.acme.com/x"}, db)
     assert crm.list_leads(path=db)[0]["domain"] == "acme.com"
 
 
@@ -53,9 +53,9 @@ def test_social_leads_sharing_a_domain_are_not_merged(tmp_path):
 def test_website_only_leads_dedup_by_domain(tmp_path):
     db = str(tmp_path / "t.sqlite")
     crm.init_db(db)
-    # No external_id, no email → domain is the dedup key (e.g. Maps website-only leads).
-    crm.upsert_lead({"source": "maps", "name": "Acme", "website": "https://acme.com"}, db)
-    _, created = crm.upsert_lead({"source": "maps", "name": "Acme Inc", "website": "http://acme.com/about"}, db)
+    # No external_id, no email → domain is the dedup key (e.g. website-only leads).
+    crm.upsert_lead({"source": "web", "name": "Acme", "website": "https://acme.com"}, db)
+    _, created = crm.upsert_lead({"source": "web", "name": "Acme Inc", "website": "http://acme.com/about"}, db)
     assert created is False
     assert len(crm.list_leads(path=db)) == 1
 
@@ -67,7 +67,7 @@ def test_website_only_lead_does_not_merge_onto_social_lead(tmp_path):
     # same domain is a different entity and must NOT merge onto it.
     crm.upsert_lead({"source": "twitter", "external_id": "u1", "name": "CEO Person",
                      "website": "https://acme.com"}, db)
-    _, created = crm.upsert_lead({"source": "maps", "name": "Acme Storefront",
+    _, created = crm.upsert_lead({"source": "web", "name": "Acme Storefront",
                                   "website": "https://acme.com"}, db)
     assert created is True
     assert len(crm.list_leads(path=db)) == 2

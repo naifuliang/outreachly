@@ -17,7 +17,6 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import crm
-import discover_maps
 import find_email
 import icp as icp_mod
 import linkedin
@@ -27,7 +26,6 @@ import verify_email
 
 WEB_DIR = Path(__file__).resolve().parents[1] / "web"
 PROVIDER_PINGS = {
-    "places": discover_maps.ping,
     "hunter": find_email.ping,
     "neverbounce": verify_email.ping,
     "unipile": send_email.ping,

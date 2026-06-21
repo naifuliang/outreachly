@@ -8,7 +8,7 @@ This document is the single source of truth for how we build Outreachly. Every P
 
 - `main` is always releasable. Never commit directly to `main`.
 - One branch per phase or feature. Naming:
-  - `feat/p<N>-<slug>` — a roadmap phase (e.g. `feat/p0-scaffold`, `feat/p3-maps-discovery`)
+  - `feat/p<N>-<slug>` — a roadmap phase (e.g. `feat/p0-scaffold`, `feat/p4-send-email`)
   - `feat/<slug>` — a feature
   - `fix/<slug>`, `chore/<slug>`, `docs/<slug>`, `test/<slug>`
 - Rebase or merge `main` in before opening a PR; keep branches short-lived.
