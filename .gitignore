@@ -26,6 +26,7 @@ yarn-debug.log*
 # ---- Local data ----
 data/*.sqlite
 data/*.sqlite-journal
+data/*.json
 data/*.db
 
 # ---- OS / Editor ----

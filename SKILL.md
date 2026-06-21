@@ -25,9 +25,13 @@ Run any script with `--help`. Check connectivity per provider with `python scrip
 
 ## Workflow
 
-1. **Build the ICP** *(you do this)* — From the user's product/target, produce a structured ICP
-   that conforms to `reference/icp_schema.json`. If the user pasted a profile, validate and refine
-   it instead. Confirm with the user before discovery; let them edit any field.
+1. **Build the ICP** *(you reason; `icp.py` validates/persists)* — From the user's product/target,
+   write a structured ICP conforming to `reference/icp_schema.json`. If the user pasted a profile,
+   refine that instead. Then make it concrete:
+   - validate: `echo '<icp json>' | python scripts/icp.py validate`
+   - save as active ICP: `echo '<icp json>' | python scripts/icp.py save`
+   Show the ICP to the user and let them edit any field (in chat, or in the optional UI) before
+   discovery. `icp.py` rejects invalid input naming the offending field.
 
 2. **Discover leads** *(scripts)* — Using the ICP's keywords/geographies:
    - Google Maps → `python scripts/discover_maps.py run --query "..."`
@@ -63,7 +67,7 @@ without it.
 
 ## Files
 
-- `scripts/` — `crm.py`, `discover_maps.py`, `find_email.py`, `verify_email.py`, `send_email.py`,
-  `linkedin.py`, `twitter.py`, `serve_ui.py`, `_common.py`
+- `scripts/` — `icp.py`, `crm.py`, `discover_maps.py`, `find_email.py`, `verify_email.py`,
+  `send_email.py`, `linkedin.py`, `twitter.py`, `serve_ui.py`, `_common.py`
 - `reference/` — `icp_schema.json`, `channels.md`
 - `web/index.html` — optional UI · `data/` — local SQLite CRM
