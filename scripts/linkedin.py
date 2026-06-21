@@ -105,6 +105,34 @@ def search_linkedin(keywords: str, max_results: int = 10, path: str | None = Non
     return {"found": len(items), "created": created, "updated": updated}
 
 
+def dm(lead_id: int, message: str, *, auto: bool = False, path: str | None = None) -> dict:
+    """Draft (default) or send (auto) a LinkedIn DM to a lead. Returns a summary dict."""
+    import crm
+
+    lead = crm.get_lead(lead_id, path)
+    if not lead:
+        return {"ok": False, "detail": f"lead #{lead_id} not found"}
+    if lead.get("source") != "linkedin" or not lead.get("external_id"):
+        return {"ok": False, "detail": "lead is not a LinkedIn profile with an id"}
+
+    if auto:
+        base, headers = _base_and_headers()
+        account_id = linkedin_account_id(base, headers)
+        if not account_id:
+            raise ConfigError("No connected LinkedIn account in Unipile.")
+        request(
+            PROVIDER, "POST", f"{base}/api/v1/chats",
+            headers=headers, use_proxy=False,
+            json={"account_id": account_id, "attendees_ids": [lead["external_id"]], "text": message},
+        )
+
+    status = "sent" if auto else "draft"
+    mid = crm.log_message(lead_id, "linkedin", "outbound", message, status=status, path=path)
+    if auto:
+        crm.mark_contacted(lead_id, path)
+    return {"ok": True, "message_id": mid, "status": status}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -112,9 +140,10 @@ def main() -> int:
     p_s = sub.add_parser("search", help="Search LinkedIn for leads by keywords.")
     p_s.add_argument("--keywords", required=True)
     p_s.add_argument("--max", type=int, default=10)
-    p_d = sub.add_parser("dm", help="Send a LinkedIn DM (later phase).")
-    p_d.add_argument("--lead")
-    p_d.add_argument("--message")
+    p_d = sub.add_parser("dm", help="Draft or send a LinkedIn DM to a lead.")
+    p_d.add_argument("--lead", type=int, required=True)
+    p_d.add_argument("--message", required=True)
+    p_d.add_argument("--auto", action="store_true", help="Actually send (default: draft only).")
     args = parser.parse_args()
 
     if args.cmd == "ping":
@@ -129,7 +158,15 @@ def main() -> int:
             return 1
         print(f"linkedin: found {res['found']} — {res['created']} new, {res['updated']} updated")
         return 0
-    print("linkedin dm: not yet implemented — scheduled for a later phase.")
+    try:
+        res = dm(args.lead, args.message, auto=args.auto)
+    except ConfigError as exc:
+        print(f"FAIL: {exc}")
+        return 1
+    if not res["ok"]:
+        print(f"REFUSED: {res['detail']}")
+        return 1
+    print(f"linkedin DM {res['status']} → lead #{args.lead} (msg #{res['message_id']})")
     return 0
 
 
