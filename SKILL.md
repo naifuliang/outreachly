@@ -1,6 +1,6 @@
 ---
 name: outreachly
-description: AI-driven multi-channel cold-outreach autopilot. Use when the user wants to find leads and run cold outreach starting from a product idea or a customer profile — build an ICP (ideal customer profile), discover leads via LinkedIn and Twitter/X, find and verify emails, write personalized cold-email sequences and DMs, send across Email / LinkedIn / Twitter, and track replies with the local CRM. Bilingual: replies and outreach copy in 中文 or English to match the user.
+description: "AI-driven multi-channel cold-outreach autopilot. Use when the user wants to find leads and run cold outreach starting from a product idea or a customer profile — build an ICP (ideal customer profile), discover leads via LinkedIn and Twitter/X, find and verify emails, write personalized cold-email sequences and DMs, send across Email / LinkedIn / Twitter, and track replies with the local CRM. Bilingual — replies and outreach copy in 中文 or English to match the user."
 ---
 
 # Outreachly
