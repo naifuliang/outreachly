@@ -24,7 +24,10 @@ to keep the skill entry point lean. All keys live in `.env` (see `.env.example`)
 
 ## X (Twitter) API v2 — discovery/DM (`x`)
 
-- **Env**: `X_BEARER_TOKEN` (app bearer for read/search; DM send adds user-context OAuth at P5)
+- **Env**: `X_BEARER_TOKEN` (app bearer for read/search). DM send uses **OAuth 1.0a user context**:
+  `X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`, `X_ACCESS_SECRET` — the app must be set to
+  Read+Write+Direct Messages and the user tokens regenerated with write. Signing is HMAC-SHA1
+  (`_common.oauth1_header`).
 - **Base**: `https://api.twitter.com` · **Docs**: https://docs.x.com/x-api
 - **Pricing (2026)**: pay-per-use — ~$0.015 / DM send, ~$0.010 / user-tied read.
 - **Use**:

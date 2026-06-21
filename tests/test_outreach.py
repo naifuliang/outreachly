@@ -94,7 +94,7 @@ def test_twitter_dm_auto_advances(tmp_path, monkeypatch):
     db = str(tmp_path / "t.sqlite")
     crm.init_db(db)
     lid = _lead(db, source="twitter", external_id="x1")
-    monkeypatch.setattr(twitter, "_auth_header", lambda: {"Authorization": "Bearer x"})
+    monkeypatch.setattr(twitter, "_dm_auth", lambda m, u: {"Authorization": "OAuth x"})
     monkeypatch.setattr(twitter, "request", lambda *a, **k: FakeResp())
     res = twitter.dm(lid, "hey", auto=True, path=db)
     assert res["status"] == "sent"
