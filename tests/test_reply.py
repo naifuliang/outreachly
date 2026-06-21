@@ -45,6 +45,7 @@ def test_sync_matches_dedups(tmp_path, monkeypatch):
          "channel": "linkedin", "body": "who matches this?"},  # no lead → skipped
     ]
     monkeypatch.setattr(reply_handler, "_fetch_unipile_inbound", lambda: inbound)
+    monkeypatch.setattr(reply_handler, "_fetch_unipile_emails", lambda: [])
     monkeypatch.setattr(reply_handler, "_fetch_x_inbound", lambda: [])
 
     r1 = reply_handler.sync(path=db)
@@ -53,6 +54,81 @@ def test_sync_matches_dedups(tmp_path, monkeypatch):
     # second sync: m1 already seen → nothing new
     r2 = reply_handler.sync(path=db)
     assert r2["recorded"] == 0
+
+
+class _Resp:
+    def __init__(self, payload):
+        self._p = payload
+
+    def json(self):
+        return self._p
+
+
+ACCOUNTS = {"items": [{"id": "g1", "type": "GOOGLE_OAUTH"}, {"id": "li", "type": "LINKEDIN"}]}
+EMAILS = {"items": [
+    {"id": "e1", "role": "inbox", "from_attendee": {"identifier": "prospect@acme.com"},
+     "body_plain": "Yes, interested!"},
+    {"id": "e2", "role": "sent", "from_attendee": {"identifier": "me@me.com"},
+     "body_plain": "my own sent mail"},  # outbound → must be skipped
+]}
+
+
+def test_fetch_unipile_emails_received_only(monkeypatch):
+    monkeypatch.setenv("UNIPILE_DSN", "https://api.unipile")
+    monkeypatch.setenv("UNIPILE_API_KEY", "k")
+
+    def dispatch(provider, method, url, **kw):
+        return _Resp(ACCOUNTS) if url.endswith("/accounts") else _Resp(EMAILS)
+
+    monkeypatch.setattr(reply_handler, "request", dispatch)
+    out = reply_handler._fetch_unipile_emails()
+    assert len(out) == 1  # 'sent' skipped
+    assert out[0]["sender_email"] == "prospect@acme.com" and out[0]["channel"] == "email"
+
+
+def test_sync_records_email_reply_by_email(tmp_path, monkeypatch):
+    db = str(tmp_path / "t.sqlite")
+    crm.init_db(db)
+    lid, _ = crm.upsert_lead({"source": "manual", "external_id": "p1", "name": "Prospect",
+                              "email": "prospect@acme.com"}, db)
+    crm.mark_contacted(lid, db)
+    monkeypatch.setattr(reply_handler, "_fetch_unipile_inbound", lambda: [])
+    monkeypatch.setattr(reply_handler, "_fetch_x_inbound", lambda: [])
+    monkeypatch.setattr(reply_handler, "_fetch_unipile_emails", lambda: [
+        {"external_message_id": "e1", "sender_id": None, "sender_email": "prospect@acme.com",
+         "channel": "email", "body": "Yes!"}])
+    res = reply_handler.sync(path=db)
+    assert res["recorded"] == 1
+    assert crm.get_lead(lid, db)["status"] == "replied"  # email reply stops the sequence
+
+
+def test_sync_dedups_same_id_within_one_batch(tmp_path, monkeypatch):
+    db = str(tmp_path / "t.sqlite")
+    crm.init_db(db)
+    lid, _ = crm.upsert_lead({"source": "manual", "external_id": "p1", "name": "P",
+                              "email": "prospect@acme.com"}, db)
+    crm.mark_contacted(lid, db)
+    dup = {"external_message_id": "same-1", "sender_id": None, "sender_email": "prospect@acme.com",
+           "channel": "email", "body": "yes"}
+    monkeypatch.setattr(reply_handler, "_fetch_unipile_inbound", lambda: [])
+    monkeypatch.setattr(reply_handler, "_fetch_x_inbound", lambda: [])
+    monkeypatch.setattr(reply_handler, "_fetch_unipile_emails", lambda: [dup, dict(dup)])
+    res = reply_handler.sync(path=db)
+    assert res["recorded"] == 1  # same external_message_id within one batch → recorded once
+
+
+def test_fetch_emails_skips_non_dict_items(monkeypatch):
+    monkeypatch.setenv("UNIPILE_DSN", "https://api.unipile")
+    monkeypatch.setenv("UNIPILE_API_KEY", "k")
+    emails = {"items": ["garbage", {"id": "e1", "role": "inbox",
+              "from_attendee": {"identifier": "p@acme.com"}, "body_plain": "hi"}]}
+
+    def dispatch(provider, method, url, **kw):
+        return _Resp({"items": [{"id": "g1", "type": "GOOGLE_OAUTH"}]}) if url.endswith("/accounts") else _Resp(emails)
+
+    monkeypatch.setattr(reply_handler, "request", dispatch)
+    out = reply_handler._fetch_unipile_emails()  # must not crash on the "garbage" string item
+    assert len(out) == 1 and out[0]["sender_email"] == "p@acme.com"
 
 
 def test_replied_lead_stops_sequence(tmp_path):
