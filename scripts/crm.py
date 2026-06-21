@@ -266,6 +266,13 @@ def set_status(lead_id: int, new_status: str, path: str | None = None) -> str:
         conn.close()
 
 
+def mark_contacted(lead_id: int, path: str | None = None) -> None:
+    """Advance a brand-new lead to 'contacted' after a real outbound touch. No-op otherwise."""
+    lead = get_lead(lead_id, path)
+    if lead and lead["status"] == "new":
+        set_status(lead_id, "contacted", path)
+
+
 # --- Lead field updates, messages & events ---------------------------------------------------
 
 _UPDATABLE = {

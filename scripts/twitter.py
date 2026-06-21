@@ -87,6 +87,34 @@ def search_twitter(keywords: str, max_results: int = 10, path: str | None = None
     return {"found": len(users), "created": created, "updated": updated}
 
 
+def dm(lead_id: int, message: str, *, auto: bool = False, path: str | None = None) -> dict:
+    """Draft (default) or send (auto) an X DM to a lead.
+
+    Live sending needs user-context OAuth (write); the app bearer alone can't send DMs. The
+    draft path and CRM logging work without it.
+    """
+    import crm
+
+    lead = crm.get_lead(lead_id, path)
+    if not lead:
+        return {"ok": False, "detail": f"lead #{lead_id} not found"}
+    if lead.get("source") != "twitter" or not lead.get("external_id"):
+        return {"ok": False, "detail": "lead is not an X profile with an id"}
+
+    if auto:
+        request(
+            PROVIDER, "POST",
+            f"{BASE}/2/dm_conversations/with/{lead['external_id']}/messages",
+            headers=_auth_header(), json={"text": message},
+        )
+
+    status = "sent" if auto else "draft"
+    mid = crm.log_message(lead_id, "twitter", "outbound", message, status=status, path=path)
+    if auto:
+        crm.mark_contacted(lead_id, path)
+    return {"ok": True, "message_id": mid, "status": status}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -94,9 +122,10 @@ def main() -> int:
     p_s = sub.add_parser("search", help="Search X for leads by keywords.")
     p_s.add_argument("--keywords", required=True)
     p_s.add_argument("--max", type=int, default=10)
-    p_d = sub.add_parser("dm", help="Send an X DM (later phase).")
-    p_d.add_argument("--lead")
-    p_d.add_argument("--message")
+    p_d = sub.add_parser("dm", help="Draft or send an X DM to a lead.")
+    p_d.add_argument("--lead", type=int, required=True)
+    p_d.add_argument("--message", required=True)
+    p_d.add_argument("--auto", action="store_true", help="Actually send (default: draft only).")
     args = parser.parse_args()
 
     if args.cmd == "ping":
@@ -111,7 +140,15 @@ def main() -> int:
             return 1
         print(f"twitter: found {res['found']} author(s) — {res['created']} new, {res['updated']} updated")
         return 0
-    print("twitter dm: not yet implemented — scheduled for a later phase.")
+    try:
+        res = dm(args.lead, args.message, auto=args.auto)
+    except ConfigError as exc:
+        print(f"FAIL: {exc}")
+        return 1
+    if not res["ok"]:
+        print(f"REFUSED: {res['detail']}")
+        return 1
+    print(f"x DM {res['status']} → lead #{args.lead} (msg #{res['message_id']})")
     return 0
 
 
