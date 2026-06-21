@@ -105,7 +105,7 @@ def search_linkedin(keywords: str, max_results: int = 10, path: str | None = Non
     return {"found": len(items), "created": created, "updated": updated}
 
 
-def dm(lead_id: int, message: str, *, auto: bool = False, path: str | None = None) -> dict:
+def dm(lead_id: int, message: str, *, auto: bool = False, step: int = 0, path: str | None = None) -> dict:
     """Draft (default) or send (auto) a LinkedIn DM to a lead. Returns a summary dict."""
     import crm
 
@@ -129,7 +129,7 @@ def dm(lead_id: int, message: str, *, auto: bool = False, path: str | None = Non
         )
 
     status = "sent" if auto else "draft"
-    mid = crm.log_message(lead_id, "linkedin", "outbound", message, status=status, path=path)
+    mid = crm.log_message(lead_id, "linkedin", "outbound", message, status=status, sequence_step=step, path=path)
     if auto:
         crm.mark_contacted(lead_id, path)
     return {"ok": True, "message_id": mid, "status": status}
@@ -146,6 +146,7 @@ def main() -> int:
     p_d.add_argument("--lead", type=int, required=True)
     p_d.add_argument("--message", required=True)
     p_d.add_argument("--auto", action="store_true", help="Actually send (default: draft only).")
+    p_d.add_argument("--step", type=int, default=0, help="Sequence step (0=first touch).")
     args = parser.parse_args()
 
     if args.cmd == "ping":
@@ -161,7 +162,7 @@ def main() -> int:
         print(f"linkedin: found {res['found']} — {res['created']} new, {res['updated']} updated")
         return 0
     try:
-        res = dm(args.lead, args.message, auto=args.auto)
+        res = dm(args.lead, args.message, auto=args.auto, step=args.step)
     except ConfigError as exc:
         print(f"FAIL: {exc}")
         return 1

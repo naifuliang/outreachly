@@ -53,7 +53,7 @@ def _email_account_id(base: str, headers: dict) -> str | None:
     return items[0].get("id") if items else None
 
 
-def send_email(lead_id: int, subject: str, body: str, *, auto: bool = False,
+def send_email(lead_id: int, subject: str, body: str, *, auto: bool = False, step: int = 0,
                campaign_id: int | None = None, path: str | None = None) -> dict:
     """Draft (default) or send (auto) an email to a lead. Returns a summary dict."""
     import crm
@@ -82,7 +82,7 @@ def send_email(lead_id: int, subject: str, body: str, *, auto: bool = False,
 
     status = "sent" if auto else "draft"
     mid = crm.log_message(lead_id, CHANNEL, "outbound", body, subject=subject,
-                          status=status, campaign_id=campaign_id, path=path)
+                          status=status, sequence_step=step, campaign_id=campaign_id, path=path)
     if auto:
         crm.mark_contacted(lead_id, path)
     return {"ok": True, "message_id": mid, "status": status, "to": lead["email"]}
@@ -97,6 +97,7 @@ def main() -> int:
     p_run.add_argument("--subject", required=True)
     p_run.add_argument("--body", required=True)
     p_run.add_argument("--auto", action="store_true", help="Actually send (default: draft only).")
+    p_run.add_argument("--step", type=int, default=0, help="Sequence step (0=first touch).")
     args = parser.parse_args()
 
     if args.cmd == "ping":
@@ -104,7 +105,7 @@ def main() -> int:
         print(f"[{'OK' if r['ok'] else 'FAIL'}] {PROVIDER} (email): {r['detail']}")
         return 0 if r["ok"] else 1
     try:
-        res = send_email(args.lead, args.subject, args.body, auto=args.auto)
+        res = send_email(args.lead, args.subject, args.body, auto=args.auto, step=args.step)
     except ConfigError as exc:
         print(f"FAIL: {exc}")
         return 1
