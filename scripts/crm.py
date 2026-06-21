@@ -266,6 +266,91 @@ def set_status(lead_id: int, new_status: str, path: str | None = None) -> str:
         conn.close()
 
 
+# --- Lead field updates, messages & events ---------------------------------------------------
+
+_UPDATABLE = {
+    "name", "company", "website", "domain", "email", "email_status", "phone",
+    "location", "title", "profile", "score",
+}
+
+
+def update_lead(lead_id: int, fields: dict, path: str | None = None) -> None:
+    """Update whitelisted lead columns. (Status changes must go through set_status.)"""
+    cols = {k: v for k, v in fields.items() if k in _UPDATABLE}
+    if not cols:
+        return
+    if isinstance(cols.get("profile"), (dict, list)):
+        cols["profile"] = json.dumps(cols["profile"], ensure_ascii=False)
+    conn = connect(path)
+    try:
+        assigns = ", ".join(f"{k}=?" for k in cols)
+        conn.execute(
+            f"UPDATE leads SET {assigns}, updated_at=datetime('now') WHERE id=?",
+            [*cols.values(), lead_id],
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def log_message(
+    lead_id: int,
+    channel: str,
+    direction: str,
+    body: str,
+    *,
+    subject: str | None = None,
+    sequence_step: int = 0,
+    status: str | None = None,
+    intent: str | None = None,
+    campaign_id: int | None = None,
+    path: str | None = None,
+) -> int:
+    """Record an outbound/inbound message. Returns the message id."""
+    conn = connect(path)
+    try:
+        cur = conn.execute(
+            "INSERT INTO messages (lead_id, campaign_id, channel, direction, sequence_step, "
+            "subject, body, status, intent, sent_at) VALUES (?,?,?,?,?,?,?,?,?, "
+            "CASE WHEN ?='outbound' THEN datetime('now') ELSE NULL END)",
+            (lead_id, campaign_id, channel, direction, sequence_step, subject, body,
+             status, intent, direction),
+        )
+        conn.commit()
+        return int(cur.lastrowid)
+    finally:
+        conn.close()
+
+
+def list_messages(lead_id: int | None = None, path: str | None = None) -> list[dict]:
+    conn = connect(path)
+    try:
+        if lead_id is not None:
+            rows = conn.execute(
+                "SELECT * FROM messages WHERE lead_id=? ORDER BY id", (lead_id,)
+            ).fetchall()
+        else:
+            rows = conn.execute("SELECT * FROM messages ORDER BY id").fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def log_event(event_type: str, *, lead_id: int | None = None, campaign_id: int | None = None,
+              payload: dict | None = None, path: str | None = None) -> int:
+    conn = connect(path)
+    try:
+        cur = conn.execute(
+            "INSERT INTO events (lead_id, campaign_id, type, payload) VALUES (?,?,?,?)",
+            (lead_id, campaign_id, event_type,
+             json.dumps(payload, ensure_ascii=False) if payload is not None else None),
+        )
+        conn.commit()
+        return int(cur.lastrowid)
+    finally:
+        conn.close()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Outreachly CRM (SQLite).")
     sub = parser.add_subparsers(dest="cmd", required=True)
