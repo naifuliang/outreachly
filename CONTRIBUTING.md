@@ -38,18 +38,21 @@ Keep subjects imperative and < 72 chars. Reference issues/criteria in the body.
 
 ## 4. Code style · 代码风格
 
-- **Backend (Python)**: `ruff` (lint) + `black` (format), type hints on public functions.
-  Every script under `backend/app/scripts/` MUST be CLI-invokable (`python -m app.scripts.<name>`).
-- **Frontend (TypeScript/React)**: `eslint` + `prettier`. Function components + hooks.
-- Unified external-API access goes through `app/core/api_client.py` (timeout, retry, rate-limit,
-  normalized errors). No raw `requests`/`httpx` calls scattered in scripts.
+- **This is a single Claude Skill, kept deliberately small.** Reasoning (ICP, copywriting,
+  classification) lives in `SKILL.md` and is done by Claude — not coded. Scripts only do
+  external IO (provider APIs) and CRM (SQLite) work.
+- **Python**: type hints on public functions; only dependency is `httpx` (rest is stdlib).
+  Every file under `scripts/` MUST be CLI-invokable (`python scripts/<name>.py [--help|ping|run]`).
+- Unified external-API access goes through `_common.request` (timeout, retry, normalized errors).
+  No raw `httpx` calls scattered across scripts.
+- **Optional UI** is a single static `web/index.html` (vanilla JS, no build step). No React/Vite.
 
 ## 5. Internationalization · 国际化
 
-- The product ships **bilingual: 中文 + English**.
-- **No hardcoded user-facing strings.** Frontend strings live in `frontend/src/i18n/{zh,en}`.
-  Backend user-facing messages/errors go through `app/i18n`.
-- Every new user-facing string is added to **both** locales in the same PR.
+- The skill ships **bilingual: 中文 + English**.
+- Claude replies and writes outreach in the user's language. The optional UI carries both
+  locales inline (zh/en toggle) — add every new UI string to **both** in the same PR.
+- **No hardcoded user-facing strings in the UI.**
 
 ## 6. Secrets · 密钥
 
@@ -58,8 +61,8 @@ Keep subjects imperative and < 72 chars. Reference issues/criteria in the body.
 
 ## 7. Tests · 测试
 
-- Critical logic has tests (`backend/tests/`, `pytest`): dedup, state machine, ICP scoring,
-  email-verification filtering, API-client retry/error normalization.
+- Critical logic has tests (`tests/`, `pytest`): dedup, CRM init, env/config errors, scoring,
+  status transitions.
 - A phase is not "done" until its acceptance criteria pass under multi-agent verification.
 
 ## 8. Tooling note · 工具说明

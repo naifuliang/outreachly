@@ -1,116 +1,102 @@
 # Outreachly — Engineering Plan & Acceptance Criteria
 
-This is the build roadmap. Phases ship in order; each merges via its own PR after multi-agent
-acceptance against the criteria below. See [`../CONTRIBUTING.md`](../CONTRIBUTING.md) for process.
+Build roadmap for a **single, importable Claude Skill**. Phases ship in order; each merges via
+its own PR after multi-agent acceptance against the criteria below. Process: see
+[`../CONTRIBUTING.md`](../CONTRIBUTING.md).
 
-## Stack
+## Architecture
 
-- **Skill**: single Claude Skill (`skill/SKILL.md`) orchestrating the script layer.
-- **Backend**: FastAPI (Python 3.13), scripts under `backend/app/scripts/` (CLI-invokable).
-- **Frontend**: React + Vite + TypeScript, bilingual (中文 / English).
-- **Storage**: local SQLite (`data/crm.sqlite`).
-- **External APIs**: Google Places, Unipile (LinkedIn + Email + unified inbox), X API v2,
-  Hunter/Apollo (email finding), NeverBounce (email verification).
+- **One skill = the repo.** `SKILL.md` at the root; import the whole folder.
+- **Claude does the reasoning** — ICP generation, copywriting, reply classification — in the
+  conversation. No LLM API key in the skill.
+- **`scripts/` do external IO only** — call provider APIs and read/write the SQLite CRM.
+- **Only dependency: `httpx`.** Everything else is the Python standard library.
+- **Optional UI**: `scripts/serve_ui.py` serves a single-file `web/index.html` (no build step).
+- **Bilingual**: Claude replies/writes in 中文 or English; the UI has a zh/en toggle.
 
 ## Channel → API map (all API, zero self-hosted scrapers)
 
-| Step | Channel | API | Official? |
+| Step | Channel | API | Script |
 |---|---|---|---|
-| Discover | Google Maps | Google Places API | ✅ |
-| Discover + DM + inbox | LinkedIn | Unipile (REST) | 3rd-party managed |
-| Discover + DM | Twitter/X | X API v2 (pay-per-use) | ✅ |
-| Email find | — | Hunter / Apollo | 3rd-party |
-| Email verify | — | NeverBounce | 3rd-party |
-| Email send + reply sync | Email | Unipile (Gmail/Outlook) | 3rd-party |
+| Discover | Google Maps | Google Places API | `discover_maps.py` |
+| Discover + DM + inbox | LinkedIn | Unipile | `linkedin.py` |
+| Discover + DM | Twitter/X | X API v2 | `twitter.py` |
+| Email find | — | Hunter | `find_email.py` |
+| Email verify | — | NeverBounce | `verify_email.py` |
+| Email send + reply sync | Email | Unipile | `send_email.py` |
 
 ---
 
-## P0 · Scaffold & Foundations
+## P0 · Skill scaffold
 
-**Goal**: stand up the single-Skill skeleton; keys and runtime in place.
-
-Tasks: directory structure; `icp_schema.json`; `reference/channels.md`; `.env.example` + key
-loading; SQLite init + schema (leads / campaigns / messages / events); unified API client
-(timeout, retry, rate-limit, normalized errors); i18n scaffolding (zh + en).
+**Goal**: an importable skill skeleton that runs.
 
 **Acceptance**
-- [ ] `python -m app.db.init_db` creates the 4 tables matching the schema.
-- [ ] Each external API has a `ping`/minimal call returning 200 (free test tier/key).
-- [ ] Missing key → clear error naming the missing env var (no stack crash).
-- [ ] `SKILL.md` is recognized and lists the callable scripts.
-- [ ] Both locales (zh, en) load; no hardcoded user-facing strings in scaffolded code.
+- [ ] `python scripts/crm.py init` creates the 4 tables (leads, campaigns, messages, events).
+- [ ] Each provider script has a `ping` (200 with a key; clear named error without).
+- [ ] Missing key → clear error naming the env var (no stack crash).
+- [ ] `SKILL.md` is at the repo root with valid frontmatter and lists the scripts; every
+      referenced script exists and is CLI-invokable.
+- [ ] Optional UI launches (`serve_ui.py`) and serves the bilingual `web/index.html`.
 
-## P1 · ICP Engine + Profile Editor
+## P1 · ICP Engine
 
-**Goal**: both entry modes produce a structured profile; visual field-level editing.
-
-**Acceptance**
-- [ ] A one-line product description yields an ICP with all required fields populated & schema-valid.
-- [ ] Pasted ICP JSON validates and loads into the editor.
-- [ ] Editing any field and saving persists (re-read matches).
-- [ ] Invalid ICP (missing field / wrong type) is rejected with the specific field named.
-
-## P2 · CRM + Lead Table
-
-**Goal**: lead data backbone for all discovery/outreach.
+**Goal**: structured ICP from a product description, or validate a pasted one.
 
 **Acceptance**
-- [ ] Duplicate lead writes collapse to one row (dedup key hit).
-- [ ] Scoring distinguishes a high-ICP-match sample from a clear mismatch (high vs low score).
-- [ ] State machine rejects illegal transitions (e.g. New → Converted without outreach).
-- [ ] Frontend table filters/sorts by score & status; status change writes back to DB.
+- [ ] A one-line product description yields an ICP with all required fields, valid against
+      `reference/icp_schema.json`.
+- [ ] A pasted ICP is validated; invalid input is rejected naming the offending field.
+- [ ] The user can edit any field before discovery (confirmed in conversation and/or UI).
 
-## P3 · Google Maps Discovery + Email Finding/Verification (first real chain)
+## P2 · CRM scoring & status
 
-**Goal**: from ICP to real contactable leads; validate end-to-end data path.
-
-**Acceptance**
-- [ ] A localized ICP returns ≥ 20 real businesses with websites.
-- [ ] Email hit-rate is measurable; hit emails are format-valid.
-- [ ] Each email carries a status label; `invalid` never enters the send queue.
-- [ ] The full chain (ICP → Maps → email → verify → CRM) runs in one command, visible in frontend.
-
-## P4 · Sequences + Email Send + Reply Follow-up (core loop)
-
-**Goal**: close the generate → send → reply → CRM-update loop.
+**Goal**: dedup (done in P0), ICP-match scoring, and a lead status state machine.
 
 **Acceptance**
-- [ ] Generated sequence: each email differs and contains lead-specific personalization.
-- [ ] A real email is sent to a test inbox and received (end-to-end delivery).
-- [ ] After the test inbox replies, `reply_handler` fetches it and classifies intent.
-- [ ] "Replied" leads auto-stop the follow-up sequence; CRM status syncs.
-- [ ] Frontend shows campaign progress and a per-lead message timeline.
+- [ ] Duplicate writes collapse to one row (dedup key hit). *(P0 baseline; keep green.)*
+- [ ] Scoring distinguishes a high-ICP-match lead from a clear mismatch (high vs low).
+- [ ] Status transitions reject illegal moves (e.g. new → converted without outreach).
 
-## P5 · Full Channel: LinkedIn + Twitter Discovery & DM
-
-**Goal**: all three channels; true multi-channel outreach.
+## P3 · Maps discovery + email enrichment (first real chain)
 
 **Acceptance**
-- [ ] LinkedIn: ICP-based search lands leads; a real DM is sent to a test account.
+- [ ] A localized ICP returns ≥ 20 real businesses with websites, upserted to the CRM.
+- [ ] Email finding + verification label each address; `invalid` never enters the send queue.
+- [ ] The full chain (ICP → maps → email → verify → CRM) runs end to end, visible in the UI.
+
+## P4 · Sequences + send + reply (core loop)
+
+**Acceptance**
+- [ ] A personalized sequence (first touch + follow-ups) is generated per lead, each distinct.
+- [ ] A real email is sent to a test inbox and received.
+- [ ] A reply is fetched and intent-classified; repliers auto-stop follow-ups; CRM updates.
+
+## P5 · LinkedIn + Twitter channels
+
+**Acceptance**
+- [ ] LinkedIn: ICP search lands leads; a real DM is sent to a test account.
 - [ ] Twitter: keyword search lands accounts; a real DM is sent.
-- [ ] Replies from all channels flow into one unified inbox view.
-- [ ] Cross-channel dedup: same lead not double-counted.
-- [ ] Draft mode never sends; auto mode sends — toggle behaves correctly.
+- [ ] Replies across channels are visible together; cross-channel dedup holds.
+- [ ] Draft mode never sends; auto mode sends.
 
-## P6 · Analytics Dashboard + Demo Polish
-
-**Goal**: funnel visualization; demoable.
+## P6 · Analytics + polish
 
 **Acceptance**
-- [ ] Dashboard numbers match DB events (spot-checked).
-- [ ] One continuous demo runs from "product description" to "reply in funnel".
-- [ ] Any external-API failure degrades gracefully (no white screen/crash).
+- [ ] UI funnel numbers match CRM data.
+- [ ] One continuous demo runs from product description to a tracked reply.
+- [ ] Any provider failure degrades gracefully (clear message, no crash).
 
 ---
 
 ## Definition of Done (global)
 
-- Every script independently CLI-invokable.
-- Critical paths have minimal self-tests (dedup, state machine, scoring, email-verify filter).
-- All external calls go through the unified client (retry + rate-limit + normalized errors).
-- `SKILL.md` orchestrates the scripts into a one-sentence-triggered full flow.
+- Every script independently CLI-invokable (`python scripts/<name>.py [--help|ping|run]`).
+- Critical paths have tests (`tests/`, pytest): dedup, CRM init, env errors, scoring, status.
+- All external calls go through `_common.request` (timeout + retry + normalized errors).
+- `SKILL.md` orchestrates the scripts and reasoning into a one-sentence-triggered flow.
 
 ## Dependencies
 
-P0 → P1 → P2 are the foundation. P3 is the first real chain. P4 depends on P3 data. P5 depends
-on P4's send/reply framework. P6 last. **P3 done = demoable; P4 done = full story; P5/P6 = bonus.**
+P0 → P1 → P2 foundation. P3 = first real chain. P4 depends on P3 data. P5 depends on P4's
+send/reply framework. P6 last. **P3 done = demoable; P4 done = full story; P5/P6 = bonus.**
