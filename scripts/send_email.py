@@ -63,7 +63,7 @@ def send_email(lead_id: int, subject: str, body: str, *, auto: bool = False,
         return {"ok": False, "detail": f"lead #{lead_id} not found"}
     if not lead.get("email"):
         return {"ok": False, "detail": "lead has no email"}
-    if lead.get("email_status") == "invalid":
+    if str(lead.get("email_status") or "").strip().lower() == "invalid":
         return {"ok": False, "detail": "email_status is invalid — refusing to send"}
 
     if auto:
