@@ -84,17 +84,34 @@ def init_db(path: str | None = None) -> set[str]:
         conn.close()
 
 
+# Domains that do NOT identify a unique entity — URL shorteners and public platforms. A lead's
+# website on these (e.g. a t.co link in an X bio) must never be used as a dedup key, or distinct
+# people sharing such a domain would be wrongly merged into one lead.
+NON_IDENTIFYING_DOMAINS = {
+    "t.co", "bit.ly", "lnkd.in", "goo.gl", "ow.ly", "buff.ly", "linktr.ee", "beacons.ai",
+    "instagram.com", "twitter.com", "x.com", "facebook.com", "fb.com", "youtube.com",
+    "tiktok.com", "threads.net", "linkedin.com", "medium.com", "substack.com", "github.com",
+}
+
+
 def _domain(website: str | None) -> str | None:
+    """Normalized website host usable as an identity key, or None for shorteners/platforms."""
     if not website:
         return None
     host = urlsplit(website if "//" in website else f"//{website}").hostname or ""
-    return host.lower().removeprefix("www.") or None
+    host = host.lower().removeprefix("www.")
+    if not host or host in NON_IDENTIFYING_DOMAINS:
+        return None
+    return host
 
 
 def upsert_lead(lead: dict, path: str | None = None) -> tuple[int, bool]:
     """Insert or update a lead with dedup. Returns (lead_id, created).
 
     Dedup order: (source, external_id) → email → domain. Existing rows are updated in place.
+    Domain is only used as a dedup key for leads that have neither an external_id nor an email
+    (e.g. a website-only Maps lead). A lead with an external_id is uniquely identified by
+    (source, external_id), so it must not be merged onto a different lead via a shared domain.
     """
     conn = connect(path)
     try:
@@ -111,9 +128,13 @@ def upsert_lead(lead: dict, path: str | None = None) -> tuple[int, bool]:
             ).fetchone()
         if not existing and lead.get("email"):
             existing = conn.execute("SELECT id FROM leads WHERE email=?", (lead["email"],)).fetchone()
-        if not existing and lead.get("domain"):
+        # Domain dedup only for leads lacking a strong identity (no external_id, no email),
+        # and only against OTHER such website-only rows — never onto a social/identified lead
+        # that merely stored the same domain.
+        if not existing and lead.get("domain") and not lead.get("external_id") and not lead.get("email"):
             existing = conn.execute(
-                "SELECT id FROM leads WHERE domain=?", (lead["domain"],)
+                "SELECT id FROM leads WHERE domain=? AND external_id IS NULL AND email IS NULL",
+                (lead["domain"],),
             ).fetchone()
 
         cols = [
