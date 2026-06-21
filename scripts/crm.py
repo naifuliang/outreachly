@@ -396,6 +396,18 @@ def latest_inbound(lead_id: int, path: str | None = None) -> dict | None:
         conn.close()
 
 
+def last_outbound(lead_id: int, path: str | None = None) -> dict | None:
+    conn = connect(path)
+    try:
+        row = conn.execute(
+            "SELECT * FROM messages WHERE lead_id=? AND direction='outbound' ORDER BY id DESC LIMIT 1",
+            (lead_id,),
+        ).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
 def stats(path: str | None = None) -> dict:
     """Funnel/analytics counts: leads by status, leads by source, totals."""
     conn = connect(path)
