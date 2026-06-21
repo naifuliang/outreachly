@@ -52,9 +52,20 @@ def test_find_lead_by_external_id_alone(tmp_path):
     db = str(tmp_path / "t.sqlite")
     crm.init_db(db)
     crm.upsert_lead({"source": "linkedin", "external_id": "li-123", "name": "Jane"}, db)
-    # No source given (inbound channel unknown) — still matches on external_id.
+    # No source given (inbound channel unknown) — still matches on a UNIQUE external_id.
     assert crm.find_lead_by(external_id="li-123", path=db)["name"] == "Jane"
     assert crm.find_lead_by(external_id="nope", path=db) is None
+
+
+def test_find_lead_by_ambiguous_external_id_does_not_guess(tmp_path):
+    db = str(tmp_path / "t.sqlite")
+    crm.init_db(db)
+    # Same external_id across two sources (id-namespace collision) → must NOT cross-attribute.
+    crm.upsert_lead({"source": "linkedin", "external_id": "12345", "name": "LI Person"}, db)
+    crm.upsert_lead({"source": "twitter", "external_id": "12345", "name": "X Person"}, db)
+    assert crm.find_lead_by(external_id="12345", path=db) is None  # ambiguous → no guess
+    # but with the source disambiguator it still resolves exactly:
+    assert crm.find_lead_by(source="twitter", external_id="12345", path=db)["name"] == "X Person"
 
 
 def test_sync_matches_linkedin_reply_with_unknown_channel(tmp_path, monkeypatch):

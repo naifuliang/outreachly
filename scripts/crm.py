@@ -298,12 +298,13 @@ def find_lead_by(*, source: str | None = None, external_id: str | None = None,
                 if row:
                     return dict(row)
             # Fall back to external_id alone — inbound replies may carry an unreliable/missing
-            # channel string, so don't require the source to match (fixes dropped LinkedIn replies).
-            row = conn.execute(
+            # channel string (fixes dropped LinkedIn replies). Only match when UNAMBIGUOUS: if the
+            # same external_id exists across sources, don't guess (avoids cross-source mis-attribution).
+            rows = conn.execute(
                 "SELECT * FROM leads WHERE external_id=?", (external_id,)
-            ).fetchone()
-            if row:
-                return dict(row)
+            ).fetchall()
+            if len(rows) == 1:
+                return dict(rows[0])
         if email:
             row = conn.execute("SELECT * FROM leads WHERE email=?", (email,)).fetchone()
             if row:
