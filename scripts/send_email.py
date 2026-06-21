@@ -40,6 +40,11 @@ def ping() -> dict:
         return {"provider": PROVIDER, "ok": False, "detail": str(exc)}
 
 
+# Unipile account types that represent a sendable mailbox (Gmail shows as GOOGLE_OAUTH,
+# Outlook as MICROSOFT/OUTLOOK). Must NOT match LINKEDIN, so we never send mail via the wrong account.
+_EMAIL_ACCOUNT_KINDS = ("GOOGLE", "GMAIL", "MICROSOFT", "OUTLOOK", "MAIL", "IMAP", "EMAIL")
+
+
 def _email_account_id(base: str, headers: dict) -> str | None:
     import os
     if os.environ.get("UNIPILE_EMAIL_ACCOUNT_ID"):
@@ -48,9 +53,9 @@ def _email_account_id(base: str, headers: dict) -> str | None:
     items = resp.json().get("items", [])
     for it in items:
         kind = str(it.get("type") or it.get("provider") or "").upper()
-        if any(k in kind for k in ("MAIL", "GMAIL", "OUTLOOK", "IMAP", "EMAIL")):
+        if any(k in kind for k in _EMAIL_ACCOUNT_KINDS):
             return it.get("id") or it.get("account_id")
-    return items[0].get("id") if items else None
+    return None  # no blind fallback — don't risk sending via a non-email account
 
 
 def send_email(lead_id: int, subject: str, body: str, *, auto: bool = False, step: int = 0,
