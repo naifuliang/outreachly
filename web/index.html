@@ -4,275 +4,258 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Outreachly</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
     <style>
-      :root {
-        --bg: #0b0d12; --panel: #151922; --fg: #e8eaed; --muted: #9aa3b2;
-        --accent: #6ea8fe; --ok: #4ade80; --bad: #f87171; --line: #222838;
+      :root{
+        --bg:#08090b; --panel:#0e1014; --panel2:#12151a; --line:#1c2027;
+        --fg:#e7eaee; --muted:#828b98; --dim:#5a626e;
+        --acc:#c6f24e; --acc-dim:#7c9a1f;
+        --ok:#7ee787; --bad:#f8746b;
+        --mono:"JetBrains Mono",monospace; --sans:"Hanken Grotesk",system-ui,sans-serif;
       }
-      * { box-sizing: border-box; }
-      body {
-        margin: 0; background: var(--bg); color: var(--fg);
-        font-family: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC",
-          "Microsoft YaHei", sans-serif;
-      }
-      .container { max-width: 860px; margin: 0 auto; padding: 48px 24px; }
-      header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-      h1 { margin: 0; font-size: 28px; letter-spacing: -0.02em; }
-      .tagline { color: var(--muted); margin: 4px 0 24px; }
-      .lang button {
-        background: transparent; border: 1px solid var(--line); color: var(--muted);
-        padding: 6px 12px; border-radius: 8px; cursor: pointer; margin-left: 8px;
-      }
-      .lang button.active { color: var(--fg); border-color: var(--accent); }
-      .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 22px; margin-top: 18px; }
-      .panel h2 { font-size: 15px; margin: 0 0 12px; color: var(--fg); }
-      .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 8px; }
-      .dot.ok { background: var(--ok); } .dot.bad { background: var(--bad); }
-      .prov { display: flex; flex-wrap: wrap; gap: 8px; }
-      .chip { border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; font-size: 13px; color: var(--muted); }
-      table { width: 100%; border-collapse: collapse; font-size: 14px; }
-      th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); }
-      th { color: var(--muted); font-weight: 500; }
-      .empty { color: var(--muted); padding: 8px 0; }
-      ul.phases { list-style: none; padding: 0; margin: 0; }
-      ul.phases li { padding: 7px 0; border-bottom: 1px solid #1f2533; color: var(--muted); }
-      ul.phases li:last-child { border-bottom: none; }
+      *{box-sizing:border-box}
+      body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);
+        background-image:radial-gradient(circle at 1px 1px,#15181d 1px,transparent 0);background-size:38px 38px}
+      .wrap{max-width:1120px;margin:0 auto;padding:28px 28px 64px}
+      .top{display:flex;align-items:center;justify-content:space-between;padding-bottom:20px;border-bottom:1px solid var(--line)}
+      .brand{display:flex;align-items:center;gap:12px}
+      .mark{width:38px;height:38px;border-radius:10px;background:var(--acc);display:flex;align-items:center;justify-content:center;color:#0c0f06;font-weight:800;font-family:var(--mono);font-size:18px}
+      .brand h1{margin:0;font-size:19px;font-weight:600;letter-spacing:-.01em}
+      .brand .sub{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:2px;text-transform:uppercase;letter-spacing:.18em}
+      .seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+      .seg button{background:transparent;border:0;color:var(--muted);padding:7px 12px;font-family:var(--mono);font-size:12px;cursor:pointer}
+      .seg button.on{background:var(--acc);color:#0c0f06;font-weight:700}
+      .hero{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin:28px 0 8px}
+      .hero .lab{font-family:var(--mono);font-size:11px;color:var(--acc-dim);text-transform:uppercase;letter-spacing:.2em;margin-bottom:8px}
+      .hero h2{margin:0;font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+      .hero .tags{margin-top:12px;display:flex;flex-wrap:wrap;gap:7px}
+      .tag{font-family:var(--mono);font-size:11px;color:var(--muted);border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:4px 11px}
+      .cta{background:var(--acc);color:#0c0f06;border:0;border-radius:9px;font-weight:700;font-size:14px;padding:12px 18px;cursor:pointer;white-space:nowrap}
+      .offline{margin-top:14px;font-family:var(--mono);font-size:12px;color:var(--bad)}
+      .grid{display:grid;gap:14px;margin-top:22px}
+      .g4{grid-template-columns:repeat(4,1fr)} .g3{grid-template-columns:1.6fr 1fr}
+      .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+      .kpi .n{font-family:var(--mono);font-size:30px;font-weight:700;letter-spacing:-.02em}
+      .kpi .l{font-size:12.5px;color:var(--muted);margin-top:3px}
+      .h{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+      .h b{font-size:14px;font-weight:600}.h .more{font-family:var(--mono);font-size:11px;color:var(--dim)}
+      .funnel .row{display:flex;align-items:center;gap:12px;margin:11px 0}
+      .funnel .name{width:104px;font-size:13px;color:var(--muted)}
+      .funnel .bar{flex:1;height:26px;background:var(--panel2);border-radius:7px;overflow:hidden}
+      .funnel .fill{height:100%;background:linear-gradient(90deg,#3a4a14,var(--acc));border-radius:7px;min-width:2px}
+      .funnel .fill.rej{background:#3a2020}
+      .funnel .v{font-family:var(--mono);font-size:13px;width:36px;text-align:right;font-weight:500}
+      .prov{display:flex;flex-direction:column;gap:11px}
+      .pv{display:flex;align-items:center;gap:10px;font-size:13px}
+      .dot{width:8px;height:8px;border-radius:50%}.dot.ok{background:var(--ok)}.dot.bad{background:var(--bad)}
+      .pv .pn{flex:1}.pv .ps{font-family:var(--mono);font-size:11px;color:var(--dim)}
+      table{width:100%;border-collapse:collapse}
+      th{text-align:left;font-family:var(--mono);font-size:10.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.12em;font-weight:500;padding:0 10px 10px}
+      td{padding:11px 10px;border-top:1px solid var(--line);font-size:13.5px}
+      tbody tr{cursor:pointer}tbody tr:hover{background:var(--panel2)}
+      .who{display:flex;align-items:center;gap:10px}
+      .av{width:30px;height:30px;border-radius:8px;background:#1a1e24;color:var(--acc);font-family:var(--mono);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+      .src{font-family:var(--mono);font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:2px 7px}
+      .pill{font-family:var(--mono);font-size:11px;padding:3px 9px;border-radius:999px;font-weight:500}
+      .s-replied{background:#15280f;color:var(--acc)}.s-contacted{background:#1a2433;color:#73b3ff}
+      .s-new{background:#1e2128;color:var(--muted)}.s-converted{background:#0f2820;color:var(--ok)}.s-rejected{background:#2a1414;color:var(--bad)}
+      .score{font-family:var(--mono);font-weight:700}
+      .empty{color:var(--dim);font-size:13px}
+      .tl .item{display:flex;gap:11px;padding:11px 0;border-top:1px solid var(--line)}
+      .tl .dirc{font-family:var(--mono);font-size:13px;width:14px;color:var(--acc)}
+      .tl .meta{font-family:var(--mono);font-size:11px;color:var(--dim)}
+      .tl .bd{font-size:13px;margin-top:3px;word-break:break-word}
+      textarea#icp{width:100%;background:#0a0c0f;color:var(--fg);border:1px solid var(--line);border-radius:9px;padding:11px;font-family:var(--mono);font-size:12.5px;resize:vertical;line-height:1.5}
+      .save{background:var(--acc);color:#0c0f06;border:0;font-weight:700;padding:8px 16px;border-radius:8px;cursor:pointer;font-family:var(--sans)}
+      .msg{font-family:var(--mono);font-size:11px;color:var(--dim)}
+      @media(max-width:880px){.g4{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:1fr}}
     </style>
   </head>
   <body>
-    <div class="container">
-      <header>
-        <h1>Outreachly</h1>
-        <div class="lang">
-          <button data-lng="en">EN</button>
-          <button data-lng="zh">中文</button>
-        </div>
+    <div class="wrap">
+      <header class="top">
+        <div class="brand"><div class="mark">O</div><div><h1>Outreachly</h1><div class="sub">multi-channel autopilot</div></div></div>
+        <div class="seg"><button data-lng="en">EN</button><button data-lng="zh">中文</button></div>
       </header>
-      <p class="tagline" data-i18n="tagline"></p>
 
-      <section class="panel">
-        <h2 data-i18n="status"></h2>
-        <p id="health"><span class="dot bad"></span><span data-i18n="checking"></span></p>
-      </section>
-
-      <section class="panel">
-        <h2 data-i18n="icp"></h2>
-        <p class="tagline" data-i18n="icpHint" style="margin: 0 0 10px"></p>
-        <textarea id="icp" rows="10" spellcheck="false"
-          style="width: 100%; background: #0e1219; color: var(--fg); border: 1px solid var(--line);
-                 border-radius: 8px; padding: 10px; font-family: ui-monospace, monospace;
-                 font-size: 13px; resize: vertical"></textarea>
-        <div style="margin-top: 10px; display: flex; align-items: center; gap: 12px">
-          <button id="icpSave"
-            style="background: var(--accent); border: none; color: #0b0d12; font-weight: 600;
-                   padding: 8px 16px; border-radius: 8px; cursor: pointer"></button>
-          <span id="icpMsg" class="empty"></span>
+      <section class="hero">
+        <div style="min-width:0">
+          <div class="lab" data-i18n="kicker"></div>
+          <h2 id="hero-title"></h2>
+          <div class="tags" id="hero-tags"></div>
+          <div class="offline" id="offline" style="display:none"></div>
         </div>
+        <button class="cta" id="run"></button>
       </section>
 
-      <section class="panel">
-        <h2 data-i18n="providers"></h2>
-        <div class="prov" id="providers"><span class="empty" data-i18n="checking"></span></div>
-      </section>
+      <div class="grid g4" id="kpis"></div>
 
-      <section class="panel">
-        <h2 data-i18n="funnel"></h2>
-        <div class="prov" id="funnel"><span class="empty" data-i18n="checking"></span></div>
-        <div class="prov" id="bychannel" style="margin-top: 10px"></div>
-      </section>
+      <div class="grid g3">
+        <div class="card funnel"><div class="h"><b data-i18n="funnel"></b><span class="more" data-i18n="pipeline"></span></div><div id="funnel"></div></div>
+        <div class="card"><div class="h"><b data-i18n="channels"></b><span class="more" data-i18n="live"></span></div><div class="prov" id="providers"><span class="empty" data-i18n="checking"></span></div></div>
+      </div>
 
-      <section class="panel">
-        <h2 data-i18n="leads"></h2>
-        <div id="leads"><span class="empty" data-i18n="noLeads"></span></div>
-      </section>
+      <div class="grid g3">
+        <div class="card"><div class="h"><b data-i18n="leads"></b><span class="more" data-i18n="byScore"></span></div><div id="leads"><span class="empty" data-i18n="noLeads"></span></div></div>
+        <div class="card tl"><div class="h"><b data-i18n="timeline"></b><span class="more" id="tl-id"></span></div><div id="timeline"><span class="empty" data-i18n="selectLead"></span></div></div>
+      </div>
 
-      <section class="panel">
-        <h2 data-i18n="timeline"></h2>
-        <div id="timeline"><span class="empty" data-i18n="selectLead"></span></div>
-      </section>
-
-      <section class="panel">
-        <h2 data-i18n="roadmap"></h2>
-        <ul class="phases" id="phases"></ul>
-      </section>
+      <div class="grid" style="grid-template-columns:1fr">
+        <div class="card">
+          <div class="h"><b data-i18n="icp"></b><span class="more" data-i18n="icpHint"></span></div>
+          <textarea id="icp" rows="8" spellcheck="false"></textarea>
+          <div style="margin-top:10px;display:flex;align-items:center;gap:12px">
+            <button class="save" id="icpSave"></button><span class="msg" id="icpMsg"></span>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script>
       const I18N = {
-        en: {
-          tagline: "From an idea to replies — cold outreach on autopilot.",
-          status: "Skill status", checking: "Checking…",
-          online: (n) => `Online · ${n} lead(s) in CRM`,
-          offline: "Offline — start with: python scripts/serve_ui.py",
-          providers: "Provider connectivity", leads: "Leads", noLeads: "No leads yet.",
-          roadmap: "Roadmap",
-          icp: "Ideal Customer Profile (ICP)",
-          icpHint: "Edit the active ICP as JSON, then Save. Invalid fields are reported.",
-          icpEmpty: "No active ICP yet — ask Claude to generate one, or paste JSON here.",
-          save: "Save", icpSaved: "Saved.", icpInvalid: "Invalid:",
-          funnel: "Funnel", byChannel: "By channel", timeline: "Messages",
-          selectLead: "Click a lead to see its messages.", noMessages: "No messages.",
-          statuses: { new: "New", contacted: "Contacted", replied: "Replied",
-            converted: "Converted", rejected: "Rejected" },
-          cols: { id: "ID", name: "Name", email: "Email", status: "Status", score: "Score" },
-          phases: ["Scaffold & foundations", "ICP engine", "CRM & leads",
-            "Email enrichment", "Sequences, send & reply",
-            "LinkedIn & Twitter channels", "Analytics & polish"],
-        },
-        zh: {
-          tagline: "从一个想法到收到回复 —— 冷启动触达,全自动。",
-          status: "Skill 状态", checking: "检测中…",
-          online: (n) => `在线 · CRM 中 ${n} 条线索`,
-          offline: "离线 —— 启动:python scripts/serve_ui.py",
-          providers: "渠道连通性", leads: "线索", noLeads: "暂无线索。",
-          roadmap: "路线图",
-          icp: "理想客户画像(ICP)",
-          icpHint: "以 JSON 编辑当前画像后保存。非法字段会被提示。",
-          icpEmpty: "暂无画像 —— 让 Claude 生成,或在此粘贴 JSON。",
-          save: "保存", icpSaved: "已保存。", icpInvalid: "不合法:",
-          funnel: "漏斗", byChannel: "按渠道", timeline: "消息",
-          selectLead: "点击线索查看其消息。", noMessages: "暂无消息。",
-          statuses: { new: "新", contacted: "已触达", replied: "已回复",
-            converted: "已转化", rejected: "已拒绝" },
-          cols: { id: "编号", name: "名称", email: "邮箱", status: "状态", score: "评分" },
-          phases: ["脚手架与基建", "画像引擎", "CRM 与线索",
-            "邮箱增强", "序列、发送与回复",
-            "LinkedIn 与 Twitter 渠道", "数据看板与打磨"],
-        },
+        en:{ sub:"multi-channel autopilot", kicker:"Active campaign · ICP", run:"▸ Run discovery",
+          noIcp:"No active ICP yet — define one below.", offline:"API offline — start it: python scripts/serve_ui.py",
+          funnel:"Pipeline funnel", pipeline:"by status", channels:"Channels", live:"live",
+          leads:"Leads", byScore:"by score", noLeads:"No leads yet.",
+          timeline:"Timeline", selectLead:"Click a lead to see its messages.", noMessages:"No messages.",
+          icp:"Ideal customer profile", icpHint:"edit JSON · save", icpEmpty:"No active ICP — paste or generate JSON.",
+          save:"Save", icpSaved:"saved.", icpInvalid:"invalid:",
+          kpi:{discovered:"Leads discovered",verified:"Verified emails",contacted:"Contacted",replies:"Replies"},
+          cols:{lead:"Lead",source:"Source",status:"Status",score:"Score"},
+          statuses:{new:"new",contacted:"contacted",replied:"replied",converted:"converted",rejected:"rejected"} },
+        zh:{ sub:"全渠道自动驾驶", kicker:"当前活动 · 客户画像", run:"▸ 运行采集",
+          noIcp:"暂无画像 —— 在下方定义。", offline:"API 未启动 —— 运行:python scripts/serve_ui.py",
+          funnel:"管道漏斗", pipeline:"按状态", channels:"渠道", live:"实时",
+          leads:"线索", byScore:"按评分", noLeads:"暂无线索。",
+          timeline:"时间线", selectLead:"点击线索查看消息。", noMessages:"暂无消息。",
+          icp:"理想客户画像", icpHint:"编辑 JSON · 保存", icpEmpty:"暂无画像 —— 粘贴或生成 JSON。",
+          save:"保存", icpSaved:"已保存。", icpInvalid:"不合法:",
+          kpi:{discovered:"发现线索",verified:"已验证邮箱",contacted:"已触达",replies:"回复"},
+          cols:{lead:"线索",source:"来源",status:"状态",score:"评分"},
+          statuses:{new:"新",contacted:"已触达",replied:"已回复",converted:"已转化",rejected:"已拒绝"} },
       };
-
+      const ORDER = ["new","contacted","replied","converted","rejected"];
       let lang = localStorage.getItem("lang") || "en";
-      let lastHealth = null, lastLeads = [], lastStats = null;
+      let D = { health:null, leads:[], stats:null, providers:{}, icp:null };
 
-      function render() {
+      const esc = (s)=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+      const initials = (n)=>(n||"?").split(/\s+/).slice(0,2).map(w=>w[0]||"").join("").toUpperCase()||"?";
+
+      function render(){
         const t = I18N[lang];
         document.documentElement.lang = lang;
-        document.querySelectorAll("[data-i18n]").forEach((el) => {
-          const v = t[el.dataset.i18n];
-          if (typeof v === "string") el.textContent = v;
-        });
-        document.querySelectorAll(".lang button").forEach((b) =>
-          b.classList.toggle("active", b.dataset.lng === lang));
-
+        document.querySelectorAll("[data-i18n]").forEach(el=>{ const v=t[el.dataset.i18n]; if(typeof v==="string") el.textContent=v; });
+        document.querySelectorAll(".seg button").forEach(b=>b.classList.toggle("on", b.dataset.lng===lang));
+        document.querySelector(".brand .sub").textContent = t.sub;
+        document.getElementById("run").textContent = t.run;
         document.getElementById("icpSave").textContent = t.save;
         document.getElementById("icp").placeholder = t.icpEmpty;
 
-        const h = document.getElementById("health");
-        if (lastHealth) h.innerHTML = `<span class="dot ok"></span>${t.online(lastHealth.leads)}`;
-        else h.innerHTML = `<span class="dot bad"></span>${t.offline}`;
+        const off = document.getElementById("offline");
+        off.style.display = D.health ? "none" : "block";
+        off.textContent = t.offline;
 
-        const ph = document.getElementById("phases");
-        ph.innerHTML = t.phases.map((p, i) => `<li>P${i} · ${p}</li>`).join("");
-
-        renderFunnel();
-
-        const ld = document.getElementById("leads");
-        if (!lastLeads.length) ld.innerHTML = `<span class="empty">${t.noLeads}</span>`;
-        else {
-          const c = t.cols;
-          ld.innerHTML =
-            `<table><thead><tr><th>${c.id}</th><th>${c.name}</th><th>${c.email}</th>` +
-            `<th>${c.status}</th><th>${c.score}</th></tr></thead><tbody>` +
-            lastLeads.map((r) =>
-              `<tr style="cursor:pointer" onclick="loadTimeline(${r.id})"><td>#${r.id}</td>` +
-              `<td>${r.name || "—"}</td><td>${r.email || "—"}</td>` +
-              `<td>${(t.statuses && t.statuses[r.status]) || r.status}</td>` +
-              `<td>${r.score ?? 0}</td></tr>`).join("") +
-            `</tbody></table>`;
+        const icp = D.icp;
+        document.getElementById("hero-title").textContent =
+          (icp && (icp.product || (icp.industries||[]).join(", "))) || t.noIcp;
+        const tags=[]; if(icp){
+          (icp.industries||[]).forEach(x=>tags.push("# "+x));
+          (icp.titles||[]).slice(0,2).forEach(x=>tags.push("◆ "+x));
+          (icp.geographies||[]).slice(0,3).forEach(x=>tags.push("⌖ "+x));
+          if(icp.channels&&icp.channels.length) tags.push("✉ "+icp.channels.join(" · "));
         }
+        document.getElementById("hero-tags").innerHTML = tags.map(x=>`<span class="tag">${esc(x)}</span>`).join("");
+
+        renderKpis(); renderFunnel(); renderProviders(); renderLeads();
       }
 
-      function renderProviders(providers) {
-        const box = document.getElementById("providers");
-        box.innerHTML = Object.entries(providers).map(([name, r]) =>
-          `<span class="chip"><span class="dot ${r.ok ? "ok" : "bad"}"></span>${name}</span>`
-        ).join("");
+      function renderKpis(){
+        const t=I18N[lang], s=D.stats||{by_status:{}}, bs=s.by_status||{};
+        const verified = D.leads.filter(l=>l.email_status==="valid").length;
+        const cards=[[t.kpi.discovered,s.total_leads||0],[t.kpi.verified,verified],
+          [t.kpi.contacted,bs.contacted||0],[t.kpi.replies,(bs.replied||0)+(bs.converted||0)]];
+        document.getElementById("kpis").innerHTML = cards.map(([l,n])=>
+          `<div class="card kpi"><div class="n">${n}</div><div class="l">${l}</div></div>`).join("");
       }
 
-      function renderFunnel() {
-        const t = I18N[lang];
-        const f = document.getElementById("funnel");
-        const ch = document.getElementById("bychannel");
-        if (!lastStats) { f.innerHTML = `<span class="empty">${t.noLeads}</span>`; ch.innerHTML = ""; return; }
-        const order = ["new", "contacted", "replied", "converted", "rejected"];
-        const bs = lastStats.by_status || {};
-        f.innerHTML = order.map((s) =>
-          `<span class="chip">${t.statuses[s]}: <b>${bs[s] || 0}</b></span>`).join("");
-        const src = lastStats.by_source || {};
-        ch.innerHTML = `<span class="empty">${t.byChannel}:</span> ` +
-          Object.entries(src).map(([s, n]) => `<span class="chip">${s}: <b>${n}</b></span>`).join(" ");
+      function renderFunnel(){
+        const t=I18N[lang], bs=(D.stats||{}).by_status||{};
+        const max=Math.max(1,...ORDER.map(s=>bs[s]||0));
+        document.getElementById("funnel").innerHTML = ORDER.map(s=>{
+          const n=bs[s]||0, w=Math.round((n/max)*100);
+          return `<div class="row"><span class="name">${t.statuses[s]}</span>`+
+            `<div class="bar"><div class="fill ${s==="rejected"?"rej":""}" style="width:${w}%"></div></div>`+
+            `<span class="v">${n}</span></div>`;
+        }).join("");
       }
 
-      async function loadTimeline(id) {
-        const t = I18N[lang];
-        const box = document.getElementById("timeline");
-        try {
-          const msgs = (await (await fetch(`/api/lead/${id}/messages`)).json()).messages || [];
-          if (!msgs.length) { box.innerHTML = `<span class="empty">${t.noMessages}</span>`; return; }
-          const esc = (s) => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;");
-          box.innerHTML = `<div style="font-size:13px">` + msgs.map((m) => {
-            const dir = m.direction === "outbound" ? "→" : "←";
-            const meta = [m.channel, m.status, m.intent].filter(Boolean).join(" · ");
-            return `<div style="padding:6px 0;border-bottom:1px solid var(--line)">` +
-              `<span style="color:var(--accent)">${dir}</span> ` +
-              `<b>#${id}</b> <span class="empty">${esc(meta)}</span>` +
-              `${m.subject ? `<div><b>${esc(m.subject)}</b></div>` : ""}` +
-              `<div>${esc(m.body)}</div></div>`;
-          }).join("") + `</div>`;
-        } catch (e) { box.innerHTML = `<span class="empty">${t.noMessages}</span>`; }
+      function renderProviders(){
+        const e=Object.entries(D.providers||{});
+        const box=document.getElementById("providers");
+        if(!e.length){ box.innerHTML=`<span class="empty">${I18N[lang].checking||"…"}</span>`; return; }
+        box.innerHTML = e.map(([name,r])=>
+          `<div class="pv"><span class="dot ${r.ok?"ok":"bad"}"></span><span class="pn">${esc(name)}</span>`+
+          `<span class="ps">${esc((r.detail||"").slice(0,26))}</span></div>`).join("");
       }
 
-      async function loadIcp() {
-        try {
-          const d = await (await fetch("/api/icp")).json();
-          const ta = document.getElementById("icp");
-          if (d.icp) ta.value = JSON.stringify(d.icp, null, 2);
-        } catch (e) {}
+      function renderLeads(){
+        const t=I18N[lang], box=document.getElementById("leads");
+        if(!D.leads.length){ box.innerHTML=`<span class="empty">${t.noLeads}</span>`; return; }
+        box.innerHTML = `<table><thead><tr><th>${t.cols.lead}</th><th>${t.cols.source}</th>`+
+          `<th>${t.cols.status}</th><th>${t.cols.score}</th></tr></thead><tbody>`+
+          D.leads.map(r=>`<tr onclick="loadTimeline(${r.id})"><td><div class="who">`+
+            `<div class="av">${esc(initials(r.name))}</div>${esc(r.name||"—")}</div></td>`+
+            `<td><span class="src">${esc(r.source||"")}</span></td>`+
+            `<td><span class="pill s-${r.status}">${esc(t.statuses[r.status]||r.status)}</span></td>`+
+            `<td class="score">${r.score??0}</td></tr>`).join("")+`</tbody></table>`;
       }
 
-      async function saveIcp() {
-        const t = I18N[lang];
-        const msg = document.getElementById("icpMsg");
-        let body;
-        try {
-          body = JSON.parse(document.getElementById("icp").value);
-        } catch (e) {
-          msg.textContent = `${t.icpInvalid} JSON`;
-          return;
-        }
-        try {
-          const r = await (await fetch("/api/icp", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
-          })).json();
-          msg.textContent = r.ok ? t.icpSaved : `${t.icpInvalid} ${(r.errors || []).join("; ")}`;
-        } catch (e) {
-          msg.textContent = String(e);
-        }
+      async function loadTimeline(id){
+        const t=I18N[lang], box=document.getElementById("timeline");
+        document.getElementById("tl-id").textContent = "#"+id;
+        try{
+          const msgs=(await (await fetch(`/api/lead/${id}/messages`)).json()).messages||[];
+          if(!msgs.length){ box.innerHTML=`<span class="empty">${t.noMessages}</span>`; return; }
+          box.innerHTML = msgs.map(m=>{
+            const dir=m.direction==="outbound"?"→":"←";
+            const meta=[m.channel,m.status,m.intent].filter(Boolean).join(" · ");
+            return `<div class="item"><span class="dirc">${dir}</span><div>`+
+              `<div class="meta">${esc(meta)}</div>`+
+              (m.subject?`<div class="bd"><b>${esc(m.subject)}</b></div>`:"")+
+              `<div class="bd">${esc(m.body)}</div></div></div>`;
+          }).join("");
+        }catch(e){ box.innerHTML=`<span class="empty">${t.noMessages}</span>`; }
       }
 
-      async function load() {
-        try {
-          const health = await (await fetch("/api/health")).json();
-          lastHealth = health;
-          lastLeads = (await (await fetch("/api/leads")).json()).leads || [];
-          lastStats = await (await fetch("/api/funnel")).json();
-          fetch("/api/providers").then((r) => r.json())
-            .then((d) => renderProviders(d.providers || {})).catch(() => {});
-          loadIcp();
-        } catch (e) { lastHealth = null; }
+      async function saveIcp(){
+        const t=I18N[lang], m=document.getElementById("icpMsg");
+        let body; try{ body=JSON.parse(document.getElementById("icp").value); }
+        catch(e){ m.textContent=`${t.icpInvalid} JSON`; return; }
+        try{
+          const r=await (await fetch("/api/icp",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})).json();
+          m.textContent = r.ok ? t.icpSaved : `${t.icpInvalid} ${(r.errors||[]).join("; ")}`;
+          if(r.ok){ D.icp=body; render(); }
+        }catch(e){ m.textContent=String(e); }
+      }
+
+      async function load(){
+        try{
+          D.health = await (await fetch("/api/health")).json();
+          D.leads = (await (await fetch("/api/leads")).json()).leads||[];
+          D.stats = await (await fetch("/api/funnel")).json();
+          D.icp = (await (await fetch("/api/icp")).json()).icp;
+          if(D.icp) document.getElementById("icp").value = JSON.stringify(D.icp,null,2);
+          fetch("/api/providers").then(r=>r.json()).then(d=>{ D.providers=d.providers||{}; renderProviders(); }).catch(()=>{});
+        }catch(e){ D.health=null; }
         render();
       }
 
-      document.querySelectorAll(".lang button").forEach((b) =>
-        b.addEventListener("click", () => {
-          lang = b.dataset.lng; localStorage.setItem("lang", lang); render();
-        }));
+      document.querySelectorAll(".seg button").forEach(b=>b.addEventListener("click",()=>{ lang=b.dataset.lng; localStorage.setItem("lang",lang); render(); }));
       document.getElementById("icpSave").addEventListener("click", saveIcp);
-
-      render();
-      load();
+      document.getElementById("run").addEventListener("click",()=>document.getElementById("icp").focus());
+      render(); load();
     </script>
   </body>
 </html>
